@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ME GPU — สต็อกสินค้า</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+/* ── tokens ─────────────────────────────── */
+:root {
+  --bg: #f3fff6;
+  --panel: rgba(255,255,255,.92);
+  --line: rgba(34,197,94,.18);
+  --text: #17311f;
+  --muted: #55715d;
+  --acc: #22c55e;
+  --acc2: #16a34a;
+  --danger: #ef4444;
+  --info: #0ea5e9;
+  --radius: 18px;
+  --shadow: 0 12px 32px rgba(15,23,42,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{font-family:'Prompt',sans-serif;background:var(--bg);color:var(--text);min-height:100%;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle at top right,rgba(74,222,128,.12),transparent 30%),radial-gradient(circle at bottom left,rgba(34,197,94,.10),transparent 30%);pointer-events:none;z-index:0;}
+
+/* ── pages ──────────────────────────────── */
+.page{display:none;min-height:100vh;position:relative;z-index:1;}
+.page.active{display:block;}
+
+/* ── login ──────────────────────────────── */
+#pg-login{display:none;min-height:100vh;align-items:center;justify-content:center;padding:24px;}
+#pg-login.active{display:flex;}
+.login-card{width:min(100%,420px);background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:32px;box-shadow:var(--shadow);backdrop-filter:blur(14px);}
+.login-card h1{font-size:2rem;margin:10px 0 4px;}
+.eyebrow{text-transform:uppercase;letter-spacing:.25em;color:var(--acc);font-size:11px;font-weight:700;}
+.login-form{display:grid;gap:12px;margin-top:18px;}
+.login-form label{font-size:.9rem;font-weight:600;color:var(--muted);}
+.login-form input{width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid rgba(34,197,94,.22);background:#fff;font-size:1rem;font-family:inherit;color:var(--text);transition:border-color 120ms;}
+.login-form input:focus{outline:none;border-color:var(--acc);}
+.login-form button{padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#052e16;font-weight:700;font-size:1rem;cursor:pointer;font-family:inherit;}
+.status-msg{font-size:.9rem;min-height:1.2em;margin-top:6px;color:#fbbf24;}
+.status-msg.ok{color:#22c55e;}
+
+/* ── top nav ────────────────────────────── */
+.topnav{position:sticky;top:0;z-index:20;background:rgba(243,255,246,.95);border-bottom:1px solid var(--line);backdrop-filter:blur(14px);padding:0 16px;}
+.topnav-inner{max-width:1140px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:56px;gap:8px;}
+.nav-brand{font-weight:700;font-size:1.1rem;color:var(--text);}
+.nav-links{display:flex;gap:6px;align-items:center;}
+.nav-btn{padding:8px 14px;border-radius:999px;border:1.5px solid var(--line);background:transparent;color:var(--muted);font-family:inherit;font-size:.88rem;font-weight:600;cursor:pointer;transition:all 120ms;}
+.nav-btn:hover,.nav-btn.active{background:rgba(34,197,94,.10);color:#166534;border-color:rgba(34,197,94,.4);}
+.nav-btn.accent{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#052e16;border-color:transparent;}
+.nav-btn.logout{color:#991b1b;border-color:rgba(248,113,113,.3);}
+
+/* ── mobile bottom nav ──────────────────── */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:20;background:rgba(243,255,246,.97);border-top:1px solid var(--line);backdrop-filter:blur(14px);padding:8px 0 env(safe-area-inset-bottom,8px);}
+.bottom-nav-inner{display:flex;justify-content:space-around;align-items:center;}
+.bnav-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 12px;border:none;background:transparent;color:var(--muted);font-family:inherit;font-size:.7rem;font-weight:600;cursor:pointer;border-radius:10px;}
+.bnav-btn.active{color:var(--acc2);}
+.bnav-btn .icon{font-size:1.3rem;}
+
+@media(max-width:640px){
+  .topnav{display:none;}
+  .bottom-nav{display:block;}
+  .page-content{padding-bottom:72px;}
+}
+
+/* ── shared layout ──────────────────────── */
+.page-content{max-width:1140px;margin:0 auto;padding:24px 16px;}
+.page-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+.page-header h1{font-size:1.4rem;margin-top:4px;}
+.hdr-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+
+/* ── glass card ─────────────────────────── */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);backdrop-filter:blur(10px);}
+.card:hover{border-color:rgba(34,197,94,.35);}
+
+/* ── stats row ──────────────────────────── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.stat-card{padding:16px;text-align:center;}
+.stat-card .slabel{font-size:.8rem;color:var(--muted);font-weight:600;margin-bottom:4px;}
+.stat-card .sval{font-size:1.7rem;font-weight:700;color:var(--text);}
+
+/* ── filter bar ─────────────────────────── */
+.filter-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:flex-end;}
+.filter-bar label{display:grid;gap:4px;font-size:.82rem;font-weight:600;color:var(--muted);}
+.filter-bar input,.filter-bar select{padding:9px 12px;border-radius:10px;border:1.5px solid var(--line);background:#fff;font-family:inherit;font-size:.9rem;color:var(--text);min-width:120px;}
+.search-wrap{flex:1;min-width:160px;}
+.search-wrap input{width:100%;}
+.filter-chip-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.filter-chip{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer;}
+.filter-chip input{width:auto;accent-color:var(--acc);}
+.ghost-btn{padding:9px 14px;border-radius:10px;border:1.5px solid rgba(34,197,94,.22);background:transparent;color:var(--muted);font-family:inherit;font-size:.88rem;cursor:pointer;}
+.ghost-btn:hover{border-color:var(--acc);color:var(--acc2);}
+
+/* ── product grid ──────────────────────── */
+.product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;}
+.prod-card{padding:16px;border-radius:var(--radius);border:1px solid var(--line);background:#fff;cursor:pointer;transition:transform 120ms,border-color 120ms;}
+.prod-card:hover{transform:translateY(-2px);border-color:rgba(34,197,94,.4);}
+.prod-card.sold-card{opacity:.7;}
+.prod-badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:.76rem;background:rgba(74,222,128,.12);color:#166534;border:1px solid rgba(74,222,128,.25);margin-bottom:8px;}
+.prod-badge.defect{background:rgba(251,191,36,.12);color:#92400e;border-color:rgba(251,191,36,.35);}
+.prod-badge.sold{background:rgba(125,211,252,.12);color:#0369a1;border-color:rgba(125,211,252,.35);}
+.prod-name{font-weight:700;font-size:1rem;margin-bottom:4px;}
+.prod-meta{display:flex;justify-content:space-between;font-size:.82rem;color:var(--muted);margin-bottom:6px;}
+.prod-detail{font-size:.82rem;color:var(--muted);margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.prod-price{font-weight:700;font-size:1.1rem;color:#14532d;}
+.prod-thumb{width:100%;height:120px;object-fit:cover;border-radius:12px;margin-bottom:10px;}
+.prod-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+.act-btn{padding:7px 12px;border-radius:10px;border:1.5px solid var(--line);background:#fff;color:var(--text);font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;transition:all 120ms;}
+.act-btn:hover{border-color:var(--acc);}
+.act-btn.sell{border-color:rgba(34,197,94,.35);color:#166534;background:rgba(240,253,244,.98);}
+.act-btn.sell:hover{background:rgba(220,252,231,.98);}
+.act-btn.sold-tag{border-color:rgba(125,211,252,.35);color:#0369a1;background:rgba(240,249,255,.98);}
+.act-btn.danger{border-color:rgba(248,113,113,.3);color:#991b1b;background:rgba(254,242,242,.98);}
+
+/* ── modal ──────────────────────────────── */
+.backdrop{position:fixed;inset:0;background:rgba(2,6,23,.72);display:none;align-items:center;justify-content:center;z-index:50;padding:16px;}
+.backdrop.open{display:flex;}
+.modal{width:min(100%,720px);max-height:90vh;overflow-y:auto;background:#fff;border-radius:24px;padding:24px;box-shadow:0 32px 64px rgba(2,6,23,.24);}
+.modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+.modal-hdr h2{font-size:1.2rem;}
+.close-btn{padding:7px 12px;border-radius:10px;border:1.5px solid var(--line);background:#fff;cursor:pointer;font-family:inherit;}
+.modal-grid{display:grid;grid-template-columns:1fr 1.6fr;gap:18px;}
+.form-grid{display:grid;gap:10px;}
+.form-grid label{font-size:.88rem;font-weight:600;color:var(--muted);}
+.form-grid input,.form-grid select,.form-grid textarea{width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);background:#fff;font-family:inherit;font-size:.92rem;color:var(--text);}
+.form-grid textarea{resize:vertical;min-height:66px;}
+.form-grid input:focus,.form-grid select:focus,.form-grid textarea:focus{outline:none;border-color:var(--acc);}
+.inline-check{display:flex;align-items:center;gap:8px;font-size:.88rem;color:var(--muted);cursor:pointer;}
+.inline-check input{width:auto;accent-color:var(--acc);}
+.modal-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+.primary-btn{padding:11px 20px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#052e16;font-weight:700;font-family:inherit;font-size:.95rem;cursor:pointer;}
+.danger-btn{padding:11px 20px;border-radius:12px;border:1.5px solid rgba(248,113,113,.3);background:rgba(254,242,242,.98);color:#991b1b;font-weight:700;font-family:inherit;font-size:.95rem;cursor:pointer;}
+.modal-preview{width:100%;border-radius:12px;border:1px solid var(--line);background:rgba(240,253,244,.95);min-height:140px;object-fit:cover;}
+.img-btns{display:flex;gap:8px;margin-top:8px;}
+
+/* ── sale confirm modal ─────────────────── */
+.sale-modal{width:min(100%,380px);background:#fff;border-radius:22px;padding:22px;box-shadow:0 24px 48px rgba(2,6,23,.2);}
+.sale-modal h3{font-size:1.05rem;margin-bottom:14px;}
+.qty-input{width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);font-family:inherit;font-size:1.1rem;text-align:center;}
+.qty-warn{color:#ef4444;font-size:.8rem;margin-top:6px;display:none;}
+
+/* ── add product page ───────────────────── */
+.add-page .card{max-width:640px;margin:0 auto;}
+.add-form{display:grid;gap:12px;}
+.add-form label{font-size:.9rem;font-weight:600;color:var(--muted);}
+.add-form input,.add-form select,.add-form textarea{width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:#fff;font-family:inherit;font-size:1rem;color:var(--text);}
+.add-form input:focus,.add-form select:focus,.add-form textarea:focus{outline:none;border-color:var(--acc);}
+.add-form textarea{resize:vertical;min-height:80px;}
+.add-form .submit-btn{padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#052e16;font-weight:700;font-size:1rem;cursor:pointer;font-family:inherit;}
+
+/* ── transactions page ──────────────────── */
+.period-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+.period-btn{padding:8px 20px;border-radius:999px;border:1.5px solid rgba(34,197,94,.3);background:#fff;color:#166534;font-family:inherit;font-size:.88rem;font-weight:600;cursor:pointer;}
+.period-btn.active{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;border-color:var(--acc2);}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.kpi-card{padding:18px;border-radius:var(--radius);}
+.kpi-card .klabel{font-size:.8rem;color:var(--muted);font-weight:600;margin-bottom:4px;}
+.kpi-card .kval{font-size:1.5rem;font-weight:700;}
+.kpi-card.rev .kval{color:#0ea5e9;}
+.kpi-card.cost .kval{color:#f97316;}
+.kpi-card.profit .kval{color:#16a34a;}
+.kpi-card.loss .kval{color:#ef4444;}
+.kpi-card.margin .kval{color:#8b5cf6;}
+.acct-panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+.section-title{font-size:.95rem;font-weight:700;color:#17311f;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid rgba(74,222,128,.25);}
+.type-tabs{display:flex;gap:6px;margin-bottom:12px;}
+.type-tab{padding:7px 16px;border-radius:999px;border:1.5px solid var(--line);background:transparent;color:var(--muted);font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;}
+.type-tab.active{background:rgba(220,252,231,.98);border-color:rgba(34,197,94,.5);color:#14532d;}
+.txn-item{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:12px;margin-bottom:8px;background:#fff;border:1px solid transparent;}
+.txn-item.sale{border-color:rgba(74,222,128,.3);background:rgba(240,253,244,.98);}
+.txn-item.purchase{border-color:rgba(125,211,252,.3);background:rgba(240,249,255,.98);}
+.txn-badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.76rem;font-weight:700;margin-bottom:4px;}
+.txn-badge.sale{background:rgba(187,247,208,.6);color:#166534;}
+.txn-badge.purchase{background:rgba(186,230,253,.6);color:#0369a1;}
+.txn-name{font-weight:600;font-size:.92rem;}
+.txn-meta{font-size:.8rem;color:#64748b;margin-top:2px;}
+.txn-right{text-align:right;flex-shrink:0;}
+.txn-amount{font-size:1.05rem;font-weight:700;color:#16a34a;}
+.txn-amount.neg{color:#ef4444;}
+.txn-date{font-size:.75rem;color:#94a3b8;margin-top:2px;}
+.cat-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.cat-bar-lbl{width:90px;font-size:.82rem;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cat-bar-track{flex:1;height:8px;border-radius:999px;background:rgba(220,252,231,.8);}
+.cat-bar-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#22c55e,#16a34a);}
+.cat-bar-val{font-size:.8rem;font-weight:700;color:#14532d;min-width:68px;text-align:right;}
+.export-btn{padding:9px 18px;border-radius:999px;border:1.5px solid rgba(34,197,94,.35);background:#fff;color:#166634;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer;}
+.empty-state{text-align:center;padding:48px;color:#94a3b8;}
+
+/* ── low stock badge ─────────────────────  */
+.low-stock{background:rgba(251,191,36,.15);color:#92400e;border-color:rgba(251,191,36,.4);}
+
+/* ── responsive ─────────────────────────── */
+@media(max-width:900px){
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+  .kpi-grid{grid-template-columns:repeat(2,1fr);}
+  .acct-panels{grid-template-columns:1fr;}
+  .modal-grid{grid-template-columns:1fr;}
+}
+@media(max-width:600px){
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+  .filter-bar{flex-direction:column;}
+  .filter-bar input,.filter-bar select{min-width:unset;}
+  .txn-item{flex-direction:column;}
+  .page-header{flex-direction:column;}
+  .hdr-actions{width:100%;}
+  .topnav-inner .nav-links{display:none;}
+}
+
+/* ── confirm dialog ─────────────────────── */
+.confirm-dialog{background:#fff;border-radius:20px;padding:24px;width:min(100%,360px);box-shadow:0 24px 48px rgba(2,6,23,.2);}
+.confirm-dialog h3{margin-bottom:10px;}
+.confirm-dialog p{color:var(--muted);font-size:.9rem;margin-bottom:18px;}
+.confirm-actions{display:flex;gap:10px;}
+</style>
+</head>
+<body>
+
+<!-- ═══════ TOP NAV ═══════ -->
+<nav class="topnav" id="topnav" style="display:none;">
+  <div class="topnav-inner">
+    <span class="nav-brand">📦 ME GPU</span><span id="syncStatus" style="font-size:.78rem;color:#94a3b8;margin-left:8px;"></span>
+    <div class="nav-links" id="navLinks">
+      <button class="nav-btn active" onclick="showPage('inventory')">คลังสินค้า</button>
+      <button class="nav-btn" onclick="showPage('add')">➕ เพิ่มสินค้า</button>
+      <button class="nav-btn" onclick="showPage('transactions')">ธุรกรรม</button>
+      <button class="nav-btn logout" onclick="logout()">ออกจากระบบ</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════ BOTTOM NAV (mobile) ═══════ -->
+<div class="bottom-nav" id="bottomNav" style="display:none;">
+  <div class="bottom-nav-inner">
+    <button class="bnav-btn active" id="bnav-inventory" onclick="showPage('inventory')"><span class="icon">📦</span>คลังสินค้า</button>
+    <button class="bnav-btn" id="bnav-add" onclick="showPage('add')"><span class="icon">➕</span>เพิ่มสินค้า</button>
+    <button class="bnav-btn" id="bnav-transactions" onclick="showPage('transactions')"><span class="icon">📊</span>ธุรกรรม</button>
+    <button class="bnav-btn" onclick="logout()"><span class="icon">🚪</span>ออก</button>
+  </div>
+</div>
+
+<!-- ═══════ LOGIN PAGE ═══════ -->
+<div id="pg-login" class="page active">
+  <div class="login-card">
+    <p class="eyebrow">Admin Access</p>
+    <h1>ME GPU</h1>
+    <p style="color:var(--muted);margin-top:4px;font-size:.92rem;">ระบบจัดการสต็อกสินค้าคอมพิวเตอร์</p>
+    <div class="login-form">
+      <label>ชื่อผู้ใช้งาน</label>
+      <input id="loginUser" type="text" placeholder="กรอกชื่อผู้ใช้งาน" />
+      <label>รหัสผ่าน</label>
+      <input id="loginPass" type="password" placeholder="กรอกรหัสผ่าน" onkeydown="if(event.key==='Enter')doLogin()" />
+      <button onclick="doLogin()">เข้าสู่ระบบ</button>
+    </div>
+    <p id="loginMsg" class="status-msg"></p>
+    <p style="margin-top:16px;font-size:.8rem;color:var(--muted);text-align:center;">Demo: admin / admin</p>
+  </div>
+</div>
+
+<!-- ═══════ INVENTORY PAGE ═══════ -->
+<div id="pg-inventory" class="page">
+  <div class="page-content">
+    <div class="page-header">
+      <div>
+        <p class="eyebrow">คลังสินค้า</p>
+        <h1>รายการอุปกรณ์คอมพิวเตอร์</h1>
+      </div>
+      <div class="hdr-actions">
+        <span id="statusChip" style="padding:7px 14px;border-radius:999px;font-size:.82rem;font-weight:600;background:rgba(220,252,231,.98);color:#166534;border:1px solid rgba(74,222,128,.3);">● พร้อมใช้งาน</span><button class="ghost-btn" onclick="manualSync()" style="font-size:.82rem;padding:7px 12px;">🔄 ซิงค์</button>
+      </div>
+    </div>
+
+    <!-- stats -->
+    <div class="stats-grid">
+      <div class="stat-card card"><div class="slabel">สินค้าทั้งหมด</div><div class="sval" id="sTotalItems">0</div></div>
+      <div class="stat-card card"><div class="slabel">หมวดหมู่</div><div class="sval" id="sTotalCats">0</div></div>
+      <div class="stat-card card"><div class="slabel">สต็อกรวม</div><div class="sval" id="sTotalStock">0</div></div>
+      <div class="stat-card card"><div class="slabel">มูลค่าสต็อก</div><div class="sval" id="sTotalValue">฿0</div></div>
+    </div>
+
+    <!-- filter bar -->
+    <div class="filter-bar card" style="margin-bottom:18px;">
+      <label class="search-wrap">
+        <span style="font-size:.8rem;font-weight:600;color:var(--muted);">ค้นหา</span>
+        <input id="searchInput" type="search" placeholder="ชื่อ / รายละเอียด" oninput="renderProducts()" />
+      </label>
+      <label>
+        <span>หมวดหมู่</span>
+        <select id="filterCat" onchange="renderProducts()"><option value="all">ทั้งหมด</option></select>
+      </label>
+      <label>
+        <span>เรียงตาม</span>
+        <select id="filterSort" onchange="renderProducts()">
+          <option value="default">ค่าเริ่มต้น</option>
+          <option value="price-asc">ราคาต่ำ → สูง</option>
+          <option value="price-desc">ราคาสูง → ต่ำ</option>
+          <option value="stock-asc">สต็อกน้อย → มาก</option>
+          <option value="stock-desc">สต็อกมาก → น้อย</option>
+        </select>
+      </label>
+      <div class="filter-chip-row" style="flex:1;">
+        <label class="filter-chip"><input type="checkbox" id="filterSold" onchange="renderProducts()" /> แสดงขายแล้ว</label>
+        <label class="filter-chip"><input type="checkbox" id="filterDefective" onchange="renderProducts()" /> แสดงมีตำหนิ</label>
+        <button class="ghost-btn" onclick="resetFilters()">ล้าง</button>
+      </div>
+    </div>
+
+    <!-- product count -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <span style="font-weight:600;font-size:.95rem;">รายการสินค้า</span>
+      <span id="prodCount" style="font-size:.85rem;color:var(--muted);"></span>
+    </div>
+
+    <div id="productGrid" class="product-grid"></div>
+  </div>
+</div>
+
+<!-- ═══════ ADD PRODUCT PAGE ═══════ -->
+<div id="pg-add" class="page add-page">
+  <div class="page-content">
+    <div class="page-header">
+      <div><p class="eyebrow">สินค้าใหม่</p><h1>กรอกข้อมูลสินค้า</h1></div>
+    </div>
+    <div class="card">
+      <div class="add-form">
+        <label>ชื่อสินค้า <span style="color:#ef4444;">*</span></label>
+        <input id="addName" type="text" placeholder="เช่น ASUS ROG Strix RTX 4090" required />
+
+        <label>หมวดหมู่ <span style="color:#ef4444;">*</span></label>
+        <select id="addCatSelect" onchange="syncCatInput('addCatSelect','addCatCustom')"></select>
+        <input id="addCatCustom" type="text" placeholder="พิมพ์หมวดหมู่ใหม่" style="display:none;" />
+
+        <label>รายละเอียดสินค้า</label>
+        <textarea id="addDetails" placeholder="สเปค สี รุ่น หรือคุณสมบัติพิเศษ"></textarea>
+
+        <label class="inline-check"><input id="addDefective" type="checkbox" onchange="syncDefect('addDefective','addDefectReason')" /> มีตำหนิ</label>
+        <input id="addDefectReason" type="text" placeholder="อธิบายตำหนิ" style="display:none;" />
+
+        <label>ราคาขาย (บาท) <span style="color:#ef4444;">*</span></label>
+        <input id="addPrice" type="number" min="0" placeholder="0" required />
+
+        <label>ต้นทุน (บาท) <span style="color:#ef4444;">*</span></label>
+        <input id="addCostPrice" type="number" min="0" placeholder="0" required />
+
+        <label>จำนวนในสต็อก <span style="color:#ef4444;">*</span></label>
+        <input id="addStock" type="number" min="0" placeholder="0" required />
+
+        <button class="submit-btn" onclick="addProduct()">💾 บันทึกสินค้า</button>
+        <p id="addMsg" class="status-msg ok"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ TRANSACTIONS PAGE ═══════ -->
+<div id="pg-transactions" class="page">
+  <div class="page-content">
+    <div class="page-header">
+      <div><p class="eyebrow">บัญชีธุรกรรม</p><h1>รายงานการเงิน</h1></div>
+      <div class="hdr-actions">
+        <button class="export-btn" onclick="exportCsv()">📥 Export CSV</button>
+      </div>
+    </div>
+
+    <div class="period-bar">
+      <button class="period-btn" data-p="today" onclick="setPeriod('today')">วันนี้</button>
+      <button class="period-btn" data-p="week" onclick="setPeriod('week')">สัปดาห์นี้</button>
+      <button class="period-btn" data-p="month" onclick="setPeriod('month')">เดือนนี้</button>
+      <button class="period-btn active" data-p="all" onclick="setPeriod('all')">ทั้งหมด</button>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card card rev"><div class="klabel">รายรับจากการขาย</div><div class="kval" id="kRevenue">฿0</div></div>
+      <div class="kpi-card card cost"><div class="klabel">ต้นทุนขาย (COGS)</div><div class="kval" id="kCost">฿0</div></div>
+      <div class="kpi-card card profit" id="kProfitCard"><div class="klabel">กำไรขั้นต้น</div><div class="kval" id="kProfit">฿0</div></div>
+      <div class="kpi-card card margin"><div class="klabel">อัตรากำไร</div><div class="kval" id="kMargin">0%</div></div>
+    </div>
+
+    <div class="acct-panels">
+      <div class="card">
+        <div class="section-title">📊 งบกำไรขาดทุน</div>
+        <div id="incomeStatement"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">🏷️ ยอดขายตามหมวดหมู่</div>
+        <div id="catBars"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <div class="section-title" style="margin:0;border:none;">📋 รายการทั้งหมด <span id="txnCountLbl" style="font-size:.82rem;color:var(--muted);font-weight:400;"></span></div>
+        <div class="type-tabs">
+          <button class="type-tab active" data-type="all" onclick="setTxnType('all')">ทั้งหมด</button>
+          <button class="type-tab" data-type="sale" onclick="setTxnType('sale')">การขาย</button>
+          <button class="type-tab" data-type="purchase" onclick="setTxnType('purchase')">รับสินค้า</button>
+        </div>
+      </div>
+      <div id="txnList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ EDIT PRODUCT MODAL ═══════ -->
+<div class="backdrop" id="editBackdrop" onclick="if(event.target===this)closeEdit()">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div><p class="eyebrow">รายละเอียดสินค้า</p><h2 id="editTitle">สินค้า</h2></div>
+      <button class="close-btn" onclick="closeEdit()">ปิด</button>
+    </div>
+    <div class="modal-grid">
+      <div>
+        <img id="editPreview" class="modal-preview" alt="preview" />
+        <div class="img-btns">
+          <button class="act-btn sell" onclick="document.getElementById('editImgInput').click()">📷 เพิ่มรูป</button>
+          <button class="act-btn danger" onclick="removeImg()">ลบรูป</button>
+          <input id="editImgInput" type="file" accept="image/*" hidden onchange="handleImg(event)" />
+        </div>
+      </div>
+      <div class="form-grid">
+        <label>ชื่อสินค้า</label>
+        <input id="editName" type="text" />
+        <label>หมวดหมู่</label>
+        <select id="editCatSelect" onchange="syncCatInput('editCatSelect','editCatCustom')"></select>
+        <input id="editCatCustom" type="text" placeholder="พิมพ์หมวดหมู่ใหม่" style="display:none;" />
+        <label>รายละเอียด</label>
+        <textarea id="editDetails" rows="3"></textarea>
+        <label class="inline-check"><input id="editDefective" type="checkbox" onchange="syncDefect('editDefective','editDefectReason')" /> มีตำหนิ</label>
+        <input id="editDefectReason" type="text" placeholder="อธิบายตำหนิ" style="display:none;" />
+        <label>ราคาขาย (บาท)</label>
+        <input id="editPrice" type="number" min="0" />
+        <label>ต้นทุน (บาท)</label>
+        <input id="editCostPrice" type="number" min="0" />
+        <label>จำนวนในสต็อก</label>
+        <input id="editStock" type="number" min="0" />
+        <label>ราคาขายจริง</label>
+        <input id="editSalePrice" type="number" min="0" />
+        <label>บันทึก</label>
+        <input id="editNote" type="text" />
+        <label class="inline-check"><input id="editSold" type="checkbox" /> ขายแล้ว</label>
+        <div class="modal-actions">
+          <button class="primary-btn" onclick="saveEdit()">💾 บันทึกการแก้ไข</button>
+          <button class="danger-btn" onclick="deleteEditingProduct()">🗑 ลบสินค้า</button>
+        </div>
+        <p id="editMsg" class="status-msg ok"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ SALE MODAL ═══════ -->
+<div class="backdrop" id="saleBackdrop" onclick="if(event.target===this)closeSale()">
+  <div class="sale-modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <p class="eyebrow">ยืนยันการขาย</p>
+      <button class="close-btn" onclick="closeSale()">ปิด</button>
+    </div>
+    <h3 id="saleItemName" style="margin-bottom:14px;"></h3>
+    <label style="font-size:.88rem;font-weight:600;color:var(--muted);display:block;margin-bottom:6px;">จำนวนที่ขาย (ชิ้น) — มีในสต็อก: <span id="saleMaxStock">0</span></label>
+    <input id="saleQty" class="qty-input" type="number" min="1" value="1" oninput="validateSaleQty()" />
+    <p id="saleWarn" class="qty-warn">⚠️ จำนวนเกินสต็อกที่มี</p>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="primary-btn" onclick="confirmSale()" style="flex:1;">✅ ยืนยันการขาย</button>
+      <button class="danger-btn" onclick="closeSale()" style="flex:1;">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ CONFIRM DELETE MODAL ═══════ -->
+<div class="backdrop" id="confirmBackdrop" onclick="if(event.target===this)closeConfirm()">
+  <div class="confirm-dialog">
+    <h3>🗑 ยืนยันการลบ</h3>
+    <p id="confirmMsg">ต้องการลบสินค้านี้หรือไม่? ข้อมูลจะหายไปและไม่สามารถกู้คืนได้</p>
+    <div class="confirm-actions">
+      <button class="danger-btn" onclick="doDelete()" style="flex:1;">ลบ</button>
+      <button class="ghost-btn" onclick="closeConfirm()" style="flex:1;padding:11px 20px;">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Google Sheets backend ─────────────────
+const JSONBIN_ID = '6a2980d5da38895dfea760d0';
+const JSONBIN_KEY = '$2a$10$BBUO3saKM9TSrp71B2H6.evgxJDS2aNSLw.hqZCH2oEuOzIlrfSVq';
+const JSONBIN_URL = 'https://api.jsonbin.io/v3/b/' + JSONBIN_ID;
+
+// ── storage keys (local cache) ────────────
+const SK = 'megpu-products';
+const TK = 'megpu-txns';
+const CK = 'megpu-cats';
+const AK = 'megpu-auth';
+
+const DEFAULT_CATS = ['CPU','GPU','Monitor','Storage','RAM','Keyboard','Mouse','Laptop','Other'];
+const DEMO = [
+  {id:1,name:'Intel Core i7-14700K',category:'CPU',stock:8,price:12900,costPrice:11000,note:'CPU flagship',details:'CPU 20-core สำหรับงานกราฟิกและเกม',defective:false,defectReason:'',sold:false,image:''},
+  {id:2,name:'LG 27" 4K OLED Monitor',category:'Monitor',stock:5,price:14900,costPrice:12000,note:'OLED grade',details:'4K 120Hz OLED',defective:false,defectReason:'',sold:false,image:''},
+  {id:3,name:'WD Black SN850X 1TB',category:'Storage',stock:12,price:3890,costPrice:3000,note:'NVMe SSD',details:'PCIe 4.0',defective:false,defectReason:'',sold:false,image:''},
+  {id:4,name:'Logitech G413 SE',category:'Keyboard',stock:7,price:2490,costPrice:1900,note:'Mechanical',details:'Tactile switches',defective:false,defectReason:'',sold:false,image:''},
+  {id:5,name:'Razer DeathAdder V3',category:'Mouse',stock:0,price:1990,costPrice:1500,note:'Gaming mouse',details:'Focus Pro 30K sensor',defective:false,defectReason:'',sold:false,image:''},
+  {id:6,name:'ASUS Zenbook 14 OLED',category:'Laptop',stock:3,price:34900,costPrice:28000,note:'Ultrabook',details:'Ryzen 7 / 16GB',defective:false,defectReason:'',sold:false,image:''},
+];
+
+// ── state ────────────────────────────────
+let products = JSON.parse(localStorage.getItem(SK) || 'null') || [];
+let txns = JSON.parse(localStorage.getItem(TK) || 'null') || [];
+let editingId = null;
+let saleTargetId = null;
+let deleteTargetId = null;
+let txnPeriod = 'all';
+let txnType = 'all';
+let isSyncing = false;
+
+// ── sync status UI ────────────────────────
+function setSyncStatus(state, msg) {
+  // state: 'syncing' | 'ok' | 'error' | 'offline'
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  const icons = { syncing:'🔄', ok:'☁️', error:'⚠️', offline:'📴' };
+  const colors = { syncing:'#94a3b8', ok:'#22c55e', error:'#f97316', offline:'#94a3b8' };
+  el.textContent = (icons[state]||'') + ' ' + msg;
+  el.style.color = colors[state] || '#94a3b8';
+}
+
+// ── Google Sheets: pull all data ──────────
+// ── JSONBin: pull ────────────────────────
+async function pullFromSheets() {
+  setSyncStatus('syncing', 'กำลังโหลดข้อมูล…');
+  try {
+    const res = await fetch(JSONBIN_URL + '/latest', {
+      headers: { 'X-Master-Key': JSONBIN_KEY }
+    });
+    const data = await res.json();
+    const raw = data.record || {};
+    if (raw.products && raw.products.length > 0) {
+      products = raw.products;
+      localStorage.setItem(SK, JSON.stringify(products));
+    } else {
+      products = JSON.parse(localStorage.getItem(SK) || 'null') || DEMO;
+      await pushToSheets();
+    }
+    if (raw.txns) {
+      txns = raw.txns;
+      localStorage.setItem(TK, JSON.stringify(txns));
+    }
+    setSyncStatus('ok', 'ซิงค์แล้ว');
+  } catch(e) {
+    products = JSON.parse(localStorage.getItem(SK) || 'null') || DEMO;
+    txns = JSON.parse(localStorage.getItem(TK) || 'null') || [];
+    setSyncStatus('error', 'เชื่อมต่อไม่ได้: ' + e.message);
+  }
+}
+
+// ── JSONBin: push ─────────────────────────
+async function pushToSheets() {
+  if (isSyncing) return;
+  isSyncing = true;
+  setSyncStatus('syncing', 'กำลังบันทึก…');
+  localStorage.setItem(SK, JSON.stringify(products));
+  localStorage.setItem(TK, JSON.stringify(txns));
+  try {
+    const res = await fetch(JSONBIN_URL, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_KEY
+      },
+      body: JSON.stringify({ products, txns })
+    });
+    const r = await res.json();
+    setSyncStatus(r.record ? 'ok' : 'error', r.record ? 'บันทึกแล้ว' : 'บันทึกไม่สำเร็จ');
+  } catch(e) {
+    setSyncStatus('error', 'บันทึกไม่สำเร็จ (เก็บในเครื่องไว้ก่อน)');
+  }
+  isSyncing = false;
+}
+
+function save() {
+  localStorage.setItem(SK, JSON.stringify(products));
+  pushToSheets();
+}
+function saveTxns() {
+  localStorage.setItem(TK, JSON.stringify(txns));
+  // pushToSheets called by save() together
+}
+function saveAll() {
+  localStorage.setItem(SK, JSON.stringify(products));
+  localStorage.setItem(TK, JSON.stringify(txns));
+  pushToSheets();
+}
+
+function loadSavedCats(){return JSON.parse(localStorage.getItem(CK)||'null')||[];}
+function saveCats(c){localStorage.setItem(CK,JSON.stringify(c));}
+function getCats(){return[...new Set([...DEFAULT_CATS,...loadSavedCats(),...products.map(p=>p.category)])];}
+
+// ── auth ──────────────────────────────────
+function doLogin(){
+  const u=document.getElementById('loginUser').value.trim();
+  const p=document.getElementById('loginPass').value;
+  const msg=document.getElementById('loginMsg');
+  if(u==='admin'&&p==='admin'){
+    localStorage.setItem(AK,'true');
+    showPage('inventory');
+  } else {
+    msg.textContent='ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง';
+    msg.className='status-msg';
+  }
+}
+function logout(){
+  localStorage.removeItem(AK);
+  document.getElementById('topnav').style.display='none';
+  document.getElementById('bottomNav').style.display='none';
+  showPageRaw('login');
+}
+function checkAuth(){return localStorage.getItem(AK)==='true';}
+
+// ── page navigation ───────────────────────
+async function showPage(p){
+  if(!checkAuth()&&p!=='login'){logout();return;}
+  showPageRaw(p);
+  // nav highlights
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const navMap={inventory:0,add:1,transactions:2};
+  if(navMap[p]!==undefined) document.querySelectorAll('.nav-btn')[navMap[p]]?.classList.add('active');
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
+  const bn=document.getElementById('bnav-'+p);
+  if(bn)bn.classList.add('active');
+  if(p==='inventory'){
+    renderProducts();updateStats();
+    await pullFromSheets();
+    renderProducts();updateStats();
+  }
+  if(p==='add'){renderCatSelect('addCatSelect');syncCatInput('addCatSelect','addCatCustom');}
+  if(p==='transactions'){await pullFromSheets();renderTxns();}
+}
+function showPageRaw(p){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  const el=document.getElementById('pg-'+p);
+  if(el)el.classList.add('active');
+  if(p==='login'){
+    document.getElementById('topnav').style.display='none';
+    document.getElementById('bottomNav').style.display='none';
+  } else {
+    document.getElementById('topnav').style.display='block';
+    document.getElementById('bottomNav').style.display='block';
+  }
+  window.scrollTo(0,0);
+}
+
+// ── category helpers ──────────────────────
+function renderCatSelect(id,selected=''){
+  const s=document.getElementById(id);
+  if(!s)return;
+  s.innerHTML=getCats().map(c=>`<option value="${c}"${c===selected?' selected':''}>${c}</option>`).join('');
+  s.innerHTML+='<option value="other">อื่น ๆ…</option>';
+  if(selected&&!getCats().includes(selected)) s.value='other';
+}
+function syncCatInput(selId,inpId,customVal=''){
+  const s=document.getElementById(selId);
+  const i=document.getElementById(inpId);
+  if(!s||!i)return;
+  i.style.display=s.value==='other'?'block':'none';
+  if(s.value==='other')i.value=customVal||'';
+}
+function syncDefect(chkId,inpId){
+  const c=document.getElementById(chkId);
+  const i=document.getElementById(inpId);
+  if(c&&i)i.style.display=c.checked?'block':'none';
+}
+function resolveCategory(selId,inpId){
+  const s=document.getElementById(selId);
+  const i=document.getElementById(inpId);
+  if(!s)return '';
+  if(s.value==='other'&&i)return i.value.trim();
+  return s.value.trim();
+}
+
+// ── stats ────────────────────────────────
+function updateStats(){
+  document.getElementById('sTotalItems').textContent=products.length;
+  document.getElementById('sTotalCats').textContent=getCats().length;
+  document.getElementById('sTotalStock').textContent=products.reduce((s,p)=>s+p.stock,0);
+  document.getElementById('sTotalValue').textContent='฿'+products.reduce((s,p)=>s+(p.stock*p.price),0).toLocaleString();
+  // update filter cat select
+  const fc=document.getElementById('filterCat');
+  if(fc){
+    const prev=fc.value;
+    fc.innerHTML='<option value="all">ทั้งหมด</option>'+getCats().map(c=>`<option value="${c}">${c}</option>`).join('');
+    fc.value=prev||'all';
+  }
+}
+
+// ── render products ────────────────────────
+function getFiltered(){
+  const q=(document.getElementById('searchInput')?.value||'').toLowerCase().trim();
+  const cat=document.getElementById('filterCat')?.value||'all';
+  const sort=document.getElementById('filterSort')?.value||'default';
+  const onlySold=document.getElementById('filterSold')?.checked;
+  const onlyDefect=document.getElementById('filterDefective')?.checked;
+  let list=products.filter(p=>{
+    if(cat!=='all'&&p.category!==cat)return false;
+    if(onlySold&&!p.sold)return false;
+    if(onlyDefect&&!p.defective)return false;
+    if(q&&!`${p.name} ${p.category} ${p.details||''} ${p.note||''}`.toLowerCase().includes(q))return false;
+    return true;
+  });
+  if(sort==='price-asc')list=[...list].sort((a,b)=>a.price-b.price);
+  if(sort==='price-desc')list=[...list].sort((a,b)=>b.price-a.price);
+  if(sort==='stock-asc')list=[...list].sort((a,b)=>a.stock-b.stock);
+  if(sort==='stock-desc')list=[...list].sort((a,b)=>b.stock-a.stock);
+  return list;
+}
+function renderProducts(){
+  const grid=document.getElementById('productGrid');
+  if(!grid)return;
+  const list=getFiltered();
+  document.getElementById('prodCount').textContent=`${list.length} รายการ`;
+  if(!list.length){grid.innerHTML='<div class="empty-state">📭 ไม่พบสินค้า</div>';return;}
+  grid.innerHTML='';
+  list.forEach(item=>{
+    const low=item.stock===0;
+    const article=document.createElement('article');
+    article.className='prod-card'+(item.sold?' sold-card':'');
+    const badgeClass=item.sold?'prod-badge sold':item.defective?'prod-badge defect':'prod-badge';
+    const badgeText=item.sold?'ขายแล้ว':item.defective?'⚠️ มีตำหนิ':item.category;
+    article.innerHTML=`
+      <span class="${badgeClass}">${badgeText}</span>
+      ${!item.sold&&item.category!==badgeText?`<span class="prod-badge" style="margin-left:4px;">${item.category}</span>`:''}
+      ${item.image?`<img class="prod-thumb" src="${item.image}" alt="${item.name}" />`:''}
+      <div class="prod-name">${item.name}</div>
+      <div class="prod-meta">
+        <span style="color:${low?'#ef4444':'inherit'}">${low?'🚫 หมดสต็อก':'สต็อก '+item.stock+' ชิ้น'}</span>
+        <span>${item.defective?'ตำหนิ: '+item.defectReason:''}</span>
+      </div>
+      <div class="prod-detail">${item.details||item.note||'ไม่มีรายละเอียด'}</div>
+      <div class="prod-price">฿${item.price.toLocaleString()}</div>
+      <div class="prod-actions">
+        ${item.sold
+          ?`<button class="act-btn sold-tag" onclick="toggleSoldOff(${item.id});event.stopPropagation()">↩️ ยกเลิกขาย</button>`
+          :`<button class="act-btn sell${low?' disabled':''}" onclick="if(${item.stock}===0){alert('สต็อกหมด ไม่สามารถขายได้');}else{openSale(${item.id});}event.stopPropagation()" ${low?'disabled':''}>💚 ขาย</button>`
+        }
+        <button class="act-btn" onclick="openEdit(${item.id});event.stopPropagation()">✏️ แก้ไข</button>
+        <button class="act-btn danger" onclick="askDelete(${item.id});event.stopPropagation()">🗑</button>
+      </div>`;
+    grid.appendChild(article);
+  });
+  updateStats();
+}
+function resetFilters(){
+  document.getElementById('searchInput').value='';
+  document.getElementById('filterCat').value='all';
+  document.getElementById('filterSort').value='default';
+  document.getElementById('filterSold').checked=false;
+  document.getElementById('filterDefective').checked=false;
+  renderProducts();
+}
+
+// ── add product ────────────────────────────
+function addProduct(){
+  const name=document.getElementById('addName').value.trim();
+  const cat=resolveCategory('addCatSelect','addCatCustom');
+  const price=Number(document.getElementById('addPrice').value);
+  const cost=Number(document.getElementById('addCostPrice').value);
+  const stock=Number(document.getElementById('addStock').value);
+  const details=document.getElementById('addDetails').value.trim();
+  const defective=document.getElementById('addDefective').checked;
+  const defectReason=document.getElementById('addDefectReason').value.trim();
+  const msg=document.getElementById('addMsg');
+  if(!name||!cat||isNaN(price)||isNaN(cost)||isNaN(stock)){msg.textContent='กรุณากรอกข้อมูลให้ครบ';msg.className='status-msg';return;}
+  if(defective&&!defectReason){msg.textContent='กรุณาระบุรายละเอียดของตำหนิ';msg.className='status-msg';return;}
+  const saved=loadSavedCats();
+  if(!saved.includes(cat)&&!DEFAULT_CATS.includes(cat))saved.push(cat);
+  saveCats(saved);
+  const item={id:Date.now(),name,category:cat,stock,price,costPrice:cost,note:details||'เพิ่มใหม่',details,defective,defectReason,sold:false,image:''};
+  products.unshift(item);
+  txns.unshift({id:Date.now(),productId:item.id,type:'purchase',productName:name,category:cat,quantity:stock,costPrice:cost,salePrice:0,profit:0,date:new Date().toLocaleString('th-TH')});
+  saveAll();
+  msg.textContent=`✅ บันทึก "${name}" เรียบร้อยแล้ว`;
+  msg.className='status-msg ok';
+  // reset form
+  document.getElementById('addName').value='';
+  document.getElementById('addDetails').value='';
+  document.getElementById('addDefective').checked=false;
+  document.getElementById('addDefectReason').style.display='none';
+  document.getElementById('addDefectReason').value='';
+  document.getElementById('addPrice').value='';
+  document.getElementById('addCostPrice').value='';
+  document.getElementById('addStock').value='';
+  setTimeout(()=>{msg.textContent='';},3000);
+}
+
+// ── edit modal ────────────────────────────
+function openEdit(id){
+  const item=products.find(p=>p.id===id);
+  if(!item)return;
+  editingId=id;
+  document.getElementById('editTitle').textContent=item.name;
+  document.getElementById('editName').value=item.name;
+  renderCatSelect('editCatSelect',item.category);
+  syncCatInput('editCatSelect','editCatCustom',item.category);
+  document.getElementById('editDetails').value=item.details||'';
+  document.getElementById('editDefective').checked=!!item.defective;
+  document.getElementById('editDefectReason').value=item.defectReason||'';
+  syncDefect('editDefective','editDefectReason');
+  document.getElementById('editPrice').value=item.price;
+  document.getElementById('editCostPrice').value=item.costPrice||0;
+  document.getElementById('editStock').value=item.stock;
+  document.getElementById('editSalePrice').value=item.salePrice||item.price;
+  document.getElementById('editNote').value=item.note||'';
+  document.getElementById('editSold').checked=!!item.sold;
+  document.getElementById('editPreview').src=item.image||'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="240" height="140" viewBox="0 0 240 140"%3E%3Crect width="240" height="140" rx="12" fill="%23f0fdf4"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%2355715d"%3Eไม่มีรูปภาพ%3C/text%3E%3C/svg%3E';
+  document.getElementById('editMsg').textContent='';
+  document.getElementById('editBackdrop').classList.add('open');
+}
+function closeEdit(){document.getElementById('editBackdrop').classList.remove('open');editingId=null;}
+
+function saveEdit(){
+  if(!editingId)return;
+  const item=products.find(p=>p.id===editingId);
+  if(!item)return;
+  const wasSold=!!item.sold;
+  const cat=resolveCategory('editCatSelect','editCatCustom');
+  item.name=document.getElementById('editName').value.trim();
+  item.category=cat;
+  item.stock=Number(document.getElementById('editStock').value)||0;
+  item.price=Number(document.getElementById('editPrice').value)||0;
+  item.costPrice=Number(document.getElementById('editCostPrice').value)||0;
+  item.note=document.getElementById('editNote').value.trim();
+  item.details=document.getElementById('editDetails').value.trim();
+  item.defective=document.getElementById('editDefective').checked;
+  item.defectReason=item.defective?document.getElementById('editDefectReason').value.trim():'';
+  if(item.defective&&!item.defectReason){alert('กรุณาระบุรายละเอียดของตำหนิ');return;}
+  const sold=document.getElementById('editSold').checked;
+  const salePrice=Number(document.getElementById('editSalePrice').value)||item.price;
+  item.sold=sold;item.salePrice=salePrice;
+  if(sold&&!wasSold){item.soldAt=new Date().toLocaleString('th-TH');txns.unshift({id:Date.now(),productId:item.id,type:'sale',productName:item.name,category:item.category,quantity:1,costPrice:item.costPrice||item.price,salePrice,profit:salePrice-(item.costPrice||item.price),date:item.soldAt});}
+  if(!sold&&wasSold){item.soldAt='';const i=txns.findIndex(t=>t.productId===item.id&&t.type==='sale');if(i!==-1)txns.splice(i,1);}
+  const saved=loadSavedCats();if(cat&&!saved.includes(cat)&&!DEFAULT_CATS.includes(cat))saved.push(cat);saveCats(saved);
+  saveAll();
+  document.getElementById('editMsg').textContent='✅ บันทึกแล้ว';
+  setTimeout(()=>{closeEdit();renderProducts();},700);
+}
+
+function deleteEditingProduct(){
+  if(editingId){closeEdit();askDelete(editingId);}
+}
+
+// ── delete confirm ─────────────────────────
+function askDelete(id){
+  deleteTargetId=id;
+  const item=products.find(p=>p.id===id);
+  document.getElementById('confirmMsg').textContent=`ต้องการลบ "${item?.name||'สินค้า'}" หรือไม่? ข้อมูลจะหายไปและไม่สามารถกู้คืนได้`;
+  document.getElementById('confirmBackdrop').classList.add('open');
+}
+function closeConfirm(){document.getElementById('confirmBackdrop').classList.remove('open');deleteTargetId=null;}
+function doDelete(){
+  if(!deleteTargetId)return;
+  const item=products.find(p=>p.id===deleteTargetId);
+  if(item&&!item.sold) txns=txns.filter(t=>t.productId!==deleteTargetId);
+  products=products.filter(p=>p.id!==deleteTargetId);
+  saveAll();
+  closeConfirm();
+  renderProducts();
+}
+
+// ── sale modal ────────────────────────────
+function openSale(id){
+  const item=products.find(p=>p.id===id);
+  if(!item||item.stock<=0)return;
+  saleTargetId=id;
+  document.getElementById('saleItemName').textContent=item.name;
+  document.getElementById('saleMaxStock').textContent=item.stock;
+  const qi=document.getElementById('saleQty');
+  qi.value=1;qi.max=item.stock;
+  document.getElementById('saleWarn').style.display='none';
+  document.getElementById('saleBackdrop').classList.add('open');
+}
+function closeSale(){document.getElementById('saleBackdrop').classList.remove('open');saleTargetId=null;}
+function validateSaleQty(){
+  const item=saleTargetId?products.find(p=>p.id===saleTargetId):null;
+  const q=parseInt(document.getElementById('saleQty').value)||0;
+  document.getElementById('saleWarn').style.display=(item&&q>item.stock)?'block':'none';
+}
+function confirmSale(){
+  if(!saleTargetId)return;
+  const item=products.find(p=>p.id===saleTargetId);
+  if(!item)return;
+  const qty=Math.max(1,parseInt(document.getElementById('saleQty').value)||1);
+  if(qty>item.stock){alert('จำนวนเกินสต็อกที่มี');return;}
+  // ✅ FIX: deduct stock
+  item.stock-=qty;
+  item.sold=true;
+  item.salePrice=item.salePrice||item.price;
+  item.soldAt=new Date().toLocaleString('th-TH');
+  txns.unshift({id:Date.now(),productId:item.id,type:'sale',productName:item.name,category:item.category,quantity:qty,costPrice:item.costPrice||item.price,salePrice:item.salePrice,profit:(item.salePrice-(item.costPrice||item.price))*qty,date:item.soldAt});
+  saveAll();
+  closeSale();
+  renderProducts();
+}
+function toggleSoldOff(id){
+  const item=products.find(p=>p.id===id);
+  if(!item)return;
+  item.sold=false;item.soldAt='';
+  const i=txns.findIndex(t=>(t.productId===id||t.productName===item.name)&&t.type==='sale');
+  if(i!==-1)txns.splice(i,1);
+  saveAll();
+  renderProducts();
+}
+
+// ── image ─────────────────────────────────
+function handleImg(e){
+  const f=e.target.files[0];if(!f||!editingId)return;
+  const r=new FileReader();
+  r.onload=()=>{const item=products.find(p=>p.id===editingId);if(item){item.image=r.result;save();document.getElementById('editPreview').src=r.result;}};
+  r.readAsDataURL(f);
+}
+function removeImg(){
+  const item=products.find(p=>p.id===editingId);
+  if(item){item.image='';save();document.getElementById('editPreview').src='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="240" height="140" viewBox="0 0 240 140"%3E%3Crect width="240" height="140" rx="12" fill="%23f0fdf4"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%2355715d"%3Eไม่มีรูปภาพ%3C/text%3E%3C/svg%3E';}
+}
+
+// ── transactions ──────────────────────────
+function setPeriod(p){
+  txnPeriod=p;
+  document.querySelectorAll('.period-btn').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
+  renderTxns();
+}
+function setTxnType(t){
+  txnType=t;
+  document.querySelectorAll('.type-tab').forEach(b=>b.classList.toggle('active',b.dataset.type===t));
+  renderTxns();
+}
+function getFilteredTxns(){
+  const all=JSON.parse(localStorage.getItem(TK)||'null')||[];
+  const now=new Date();
+  return all.filter(t=>{
+    if(txnType!=='all'&&t.type!==txnType)return false;
+    if(txnPeriod==='all')return true;
+    const d=new Date(t.date.replace(/(\d+)\/(\d+)\/(\d+)/,(_,d,m,y)=>`${parseInt(y)>2400?parseInt(y)-543:y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`));
+    if(isNaN(d))return true;
+    if(txnPeriod==='today')return d.toDateString()===now.toDateString();
+    if(txnPeriod==='week'){const w=new Date(now);w.setDate(now.getDate()-7);return d>=w;}
+    if(txnPeriod==='month')return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+    return true;
+  });
+}
+function renderTxns(){
+  const filtered=getFilteredTxns();
+  const sales=filtered.filter(t=>t.type==='sale');
+  const rev=sales.reduce((s,t)=>s+(t.salePrice||0)*(t.quantity||1),0);
+  const cogs=sales.reduce((s,t)=>s+(t.costPrice||0)*(t.quantity||1),0);
+  const profit=rev-cogs;
+  const margin=rev>0?((profit/rev)*100).toFixed(1):'0.0';
+  document.getElementById('kRevenue').textContent='฿'+rev.toLocaleString();
+  document.getElementById('kCost').textContent='฿'+cogs.toLocaleString();
+  document.getElementById('kProfit').textContent='฿'+profit.toLocaleString();
+  const pc=document.getElementById('kProfitCard');
+  pc.className='kpi-card card '+(profit<0?'loss':'profit');
+  document.getElementById('kMargin').textContent=margin+'%';
+  // income statement
+  const allTxns=JSON.parse(localStorage.getItem(TK)||'null')||[];
+  const purchases=allTxns.filter(t=>t.type==='purchase');
+  const totalPurchCost=purchases.reduce((s,t)=>s+(t.costPrice||0)*(t.quantity||1),0);
+  const rows=[
+    {label:'รายรับจากการขาย',val:rev,bold:false,indent:false},
+    {label:'หัก: ต้นทุนขาย (COGS)',val:-cogs,bold:false,indent:true},
+    {label:'กำไรขั้นต้น',val:profit,bold:true,indent:false,divider:true},
+    {label:'จำนวนรายการขาย',val:sales.length+' รายการ',text:true},
+    {label:'มูลค่าสต็อกรับเข้า',val:totalPurchCost},
+  ];
+  document.getElementById('incomeStatement').innerHTML=rows.map(r=>`<div style="display:flex;justify-content:space-between;padding:6px 0${r.divider?';border-top:1.5px solid rgba(74,222,128,.35);margin-top:4px;padding-top:8px;':''}"><span style="font-size:.85rem;color:${r.bold?'#14532d':'#374151'};font-weight:${r.bold?700:500};">${r.indent?'&nbsp;&nbsp;':''}${r.label}</span><span style="font-size:.85rem;font-weight:${r.bold?700:600};color:${r.text?'#374151':typeof r.val==='number'&&r.val<0?'#f97316':r.bold?'#16a34a':'#0f172a'};">${r.text?r.val:'฿'+Math.abs(r.val).toLocaleString()+(r.val<0?' (-)':'')}</span></div>`).join('');
+  // cat bars
+  const catMap={};
+  sales.forEach(t=>{catMap[t.category]=(catMap[t.category]||0)+(t.salePrice||0)*(t.quantity||1);});
+  const catArr=Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
+  const maxV=catArr[0]?.[1]||1;
+  document.getElementById('catBars').innerHTML=catArr.length?catArr.map(([cat,val])=>`<div class="cat-bar-row"><span class="cat-bar-lbl" title="${cat}">${cat}</span><div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.round((val/maxV)*100)}%"></div></div><span class="cat-bar-val">฿${val.toLocaleString()}</span></div>`).join(''):'<p style="color:#94a3b8;font-size:.85rem;text-align:center;padding:20px 0;">ยังไม่มีข้อมูลการขาย</p>';
+  // list
+  document.getElementById('txnCountLbl').textContent=`(${filtered.length} รายการ)`;
+  document.getElementById('txnList').innerHTML=filtered.length?filtered.map(t=>{
+    const isSale=t.type==='sale';const p=t.profit||0;
+    return`<div class="txn-item ${t.type}"><div style="flex:1;"><span class="txn-badge ${t.type}">${isSale?'💚 ขายออก':'📦 รับสินค้า'}</span><div class="txn-name">${t.productName}</div><div class="txn-meta">${t.category} · จำนวน ${t.quantity||1} ชิ้น${isSale?` · ขาย ฿${(t.salePrice||0).toLocaleString()} · ต้นทุน ฿${(t.costPrice||0).toLocaleString()}`:` · ต้นทุน ฿${(t.costPrice||0).toLocaleString()}`}</div></div><div class="txn-right">${isSale?`<div class="txn-amount${p<0?' neg':''}">฿${p.toLocaleString()}</div><div style="font-size:.72rem;color:#94a3b8;">กำไร</div>`:''}<div class="txn-date">${t.date}</div></div></div>`;
+  }).join(''):'<div class="empty-state">📭 ไม่มีรายการ</div>';
+}
+function exportCsv(){
+  const all=JSON.parse(localStorage.getItem(TK)||'null')||[];
+  const header='ประเภท,ชื่อสินค้า,หมวดหมู่,จำนวน,ต้นทุน/ชิ้น,ราคาขาย/ชิ้น,กำไร,วันที่';
+  const rows=all.map(t=>[t.type==='sale'?'ขายออก':'รับสินค้า',t.productName,t.category,t.quantity||1,t.costPrice||0,t.salePrice||0,t.profit||0,t.date].join(','));
+  const csv='\uFEFF'+[header,...rows].join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  a.download=`MEGPU_${new Date().toLocaleDateString('th-TH').replace(/\//g,'-')}.csv`;
+  a.click();
+}
+
+// ── manual sync ───────────────────────────
+async function manualSync(){
+  await pullFromSheets();
+  renderProducts();updateStats();
+  if(document.getElementById('pg-transactions').classList.contains('active')) renderTxns();
+}
+
+// ── init ──────────────────────────────────
+if(checkAuth()){showPage('inventory');}
+// login form enter key already wired via onkeydown on input
+</script>
+</body>
+</html>
