@@ -137,10 +137,13 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle
 .img-btns{display:flex;gap:8px;margin-top:8px;}
 
 /* ── sale confirm modal ─────────────────── */
-.sale-modal{width:min(100%,380px);background:#fff;border-radius:22px;padding:22px;box-shadow:0 24px 48px rgba(2,6,23,.2);}
+/* sale-modal moved */
 .sale-modal h3{font-size:1.05rem;margin-bottom:14px;}
 .qty-input{width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);font-family:inherit;font-size:1.1rem;text-align:center;}
 .qty-warn{color:#ef4444;font-size:.8rem;margin-top:6px;display:none;}
+.sale-lbl{display:block;font-size:.85rem;font-weight:600;color:#374151;margin-bottom:6px;}
+.sale-field-box{display:flex;flex-direction:column;}
+.sale-modal{width:min(100%,420px);background:#fff;border-radius:22px;padding:22px;box-shadow:0 24px 48px rgba(2,6,23,.2);}
 
 /* ── add product page ───────────────────── */
 .add-page .card{max-width:640px;margin:0 auto;}
@@ -191,6 +194,15 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle
 
 /* ── low stock badge ─────────────────────  */
 .low-stock{background:rgba(251,191,36,.15);color:#92400e;border-color:rgba(251,191,36,.4);}
+.cat-section{margin-bottom:28px;}
+.cat-section-header{display:flex;align-items:center;justify-content:space-between;padding:8px 4px 10px;border-bottom:2px solid rgba(74,222,128,.25);margin-bottom:12px;}
+.cat-sec-label{font-size:.92rem;font-weight:700;color:#166534;letter-spacing:.02em;}
+.cat-sec-count{font-size:.78rem;color:var(--muted);font-weight:500;}
+.stock-badge{display:inline-flex;align-items:center;gap:4px;font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid;}
+.stock-ok{background:rgba(220,252,231,.8);color:#166534;border-color:rgba(74,222,128,.4);}
+.stock-low{background:rgba(254,243,199,.9);color:#92400e;border-color:rgba(251,191,36,.4);}
+.prod-card .prod-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:6px;}
+.prod-card .prod-margin{font-size:.75rem;color:var(--muted);}
 
 /* ── responsive ─────────────────────────── */
 @media(max-width:900px){
@@ -313,7 +325,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle
       <span id="prodCount" style="font-size:.85rem;color:var(--muted);"></span>
     </div>
 
-    <div id="productGrid" class="product-grid"></div>
+    <div id="productGrid"></div>
   </div>
 </div>
 
@@ -453,16 +465,53 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle
 <!-- ═══════ SALE MODAL ═══════ -->
 <div class="backdrop" id="saleBackdrop" onclick="if(event.target===this)closeSale()">
   <div class="sale-modal">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-      <p class="eyebrow">ยืนยันการขาย</p>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <p class="eyebrow">บันทึกการขาย</p>
       <button class="close-btn" onclick="closeSale()">ปิด</button>
     </div>
-    <h3 id="saleItemName" style="margin-bottom:14px;"></h3>
-    <label style="font-size:.88rem;font-weight:600;color:var(--muted);display:block;margin-bottom:6px;">จำนวนที่ขาย (ชิ้น) — มีในสต็อก: <span id="saleMaxStock">0</span></label>
-    <input id="saleQty" class="qty-input" type="number" min="1" value="1" oninput="validateSaleQty()" />
-    <p id="saleWarn" class="qty-warn">⚠️ จำนวนเกินสต็อกที่มี</p>
+    <h3 id="saleItemName" style="margin-bottom:4px;line-height:1.35;"></h3>
+    <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px;">
+      ราคาตั้งต้น: <strong id="saleListedPrice" style="color:#0f172a;">—</strong>
+      &nbsp;·&nbsp; มีสต็อก: <strong id="saleMaxStock" style="color:#0f172a;">0</strong> ชิ้น
+    </p>
+
+    <!-- 2 ช่องหลัก -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px;">
+      <div class="sale-field-box">
+        <label class="sale-lbl">💰 ราคาขาย (บาท) <span style="color:#ef4444;">*</span></label>
+        <input id="salePriceInput" class="qty-input" type="number" min="0" placeholder="กรอกราคาที่ขายได้" oninput="validateSale()" />
+      </div>
+      <div class="sale-field-box">
+        <label class="sale-lbl">🚚 ค่าส่ง (บาท)</label>
+        <input id="saleShippingInput" class="qty-input" type="number" min="0" value="0" placeholder="0" oninput="validateSale()" />
+      </div>
+    </div>
+
+    <!-- qty (เล็กลง) -->
+    <div style="margin-top:10px;">
+      <label class="sale-lbl">จำนวนที่ขาย (ชิ้น)</label>
+      <input id="saleQty" class="qty-input" type="number" min="1" value="1" oninput="validateSale()" />
+      <p id="saleWarn" class="qty-warn">⚠️ จำนวนเกินสต็อกที่มี</p>
+    </div>
+
+    <!-- summary -->
+    <div id="saleSummary" style="margin-top:14px;padding:12px 14px;border-radius:12px;background:rgba(220,252,231,.5);border:1px solid rgba(74,222,128,.3);display:none;">
+      <div style="display:flex;justify-content:space-between;font-size:.83rem;color:var(--muted);margin-bottom:4px;">
+        <span>รายรับ (ราคาขาย × จำนวน)</span><span id="sumRevenue">฿0</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.83rem;color:var(--muted);margin-bottom:4px;">
+        <span>ต้นทุนรวม</span><span id="sumCost">฿0</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.83rem;color:var(--muted);margin-bottom:4px;">
+        <span>ค่าส่ง</span><span id="sumShipping">฿0</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.95rem;font-weight:700;border-top:1px solid rgba(74,222,128,.35);padding-top:8px;margin-top:4px;">
+        <span>กำไรสุทธิ</span><span id="sumProfit" style="color:#16a34a;">฿0</span>
+      </div>
+    </div>
+
     <div class="modal-actions" style="margin-top:16px;">
-      <button class="primary-btn" onclick="confirmSale()" style="flex:1;">✅ ยืนยันการขาย</button>
+      <button class="primary-btn" id="saleConfirmBtn" onclick="confirmSale()" style="flex:1;" disabled>✅ ยืนยันการขาย</button>
       <button class="danger-btn" onclick="closeSale()" style="flex:1;">ยกเลิก</button>
     </div>
   </div>
@@ -534,16 +583,34 @@ async function pullFromSheets() {
     const data = await res.json();
     const raw = data.record || {};
     if (raw.products && raw.products.length > 0) {
-      products = raw.products;
+      // merge: ถ้า local มีการขายค้างอยู่ (stock ต่ำกว่า / sold=true) ให้ใช้ local แทน
+      const localMap = new Map(products.map(p => [p.id, p]));
+      const remoteIds = new Set(raw.products.map(p => p.id));
+      const mergedProducts = raw.products.map(rp => {
+        const lp = localMap.get(rp.id);
+        if (!lp) return rp;
+        // local มีการแก้ไขที่ยังไม่ได้ push (stock ลดลง หรือ sold ถูก set)
+        if (lp.stock < rp.stock || (lp.sold && !rp.sold)) return lp;
+        return rp;
+      });
+      // รวมสินค้าใหม่ที่อยู่ใน local แต่ยังไม่ได้ push ขึ้น cloud
+      const localNewProducts = products.filter(p => !remoteIds.has(p.id));
+      products = [...mergedProducts, ...localNewProducts];
       localStorage.setItem(SK, JSON.stringify(products));
     } else {
       products = JSON.parse(localStorage.getItem(SK) || 'null') || DEMO;
       await pushToSheets();
     }
-    if (raw.txns) {
-      txns = raw.txns;
+    if (raw.txns && raw.txns.length > 0) {
+      // merge: keep local txns that aren't in remote (pending push), then add remote ones
+      const localIds = new Set(txns.map(t => t.id));
+      const remoteIds = new Set(raw.txns.map(t => t.id));
+      const localOnly = txns.filter(t => !remoteIds.has(t.id));
+      const merged = [...localOnly, ...raw.txns].sort((a, b) => b.id - a.id);
+      txns = merged;
       localStorage.setItem(TK, JSON.stringify(txns));
     }
+    reconcilePurchaseTxns();
     setSyncStatus('ok', 'ซิงค์แล้ว');
   } catch(e) {
     products = JSON.parse(localStorage.getItem(SK) || 'null') || DEMO;
@@ -642,8 +709,9 @@ function showPageRaw(p){
     document.getElementById('topnav').style.display='none';
     document.getElementById('bottomNav').style.display='none';
   } else {
-    document.getElementById('topnav').style.display='block';
-    document.getElementById('bottomNav').style.display='block';
+    const isMobile=window.innerWidth<=640;
+    document.getElementById('topnav').style.display=isMobile?'none':'block';
+    document.getElementById('bottomNav').style.display=isMobile?'block':'none';
   }
   window.scrollTo(0,0);
 }
@@ -715,36 +783,73 @@ function renderProducts(){
   const grid=document.getElementById('productGrid');
   if(!grid)return;
   const list=getFiltered();
+  const sort=document.getElementById('filterSort')?.value||'default';
   document.getElementById('prodCount').textContent=`${list.length} รายการ`;
   if(!list.length){grid.innerHTML='<div class="empty-state">📭 ไม่พบสินค้า</div>';return;}
   grid.innerHTML='';
-  list.forEach(item=>{
-    const low=item.stock===0;
+
+  function makeCard(item){
+    const isLow=item.stock>0&&item.stock<=2;
+    const defect=item.defective;
+    const margin=item.costPrice>0?Math.round(((item.price-item.costPrice)/item.price)*100):null;
     const article=document.createElement('article');
     article.className='prod-card'+(item.sold?' sold-card':'');
-    const badgeClass=item.sold?'prod-badge sold':item.defective?'prod-badge defect':'prod-badge';
-    const badgeText=item.sold?'ขายแล้ว':item.defective?'⚠️ มีตำหนิ':item.category;
+    const topBadge=item.sold?`<span class="prod-badge sold">ขายแล้ว</span>`
+      :defect?`<span class="prod-badge defect">⚠️ มีตำหนิ</span>`:'';
+    const stockBadge=isLow
+      ?`<span class="stock-badge stock-low">⚠ เหลือ ${item.stock} ชิ้น</span>`
+      :`<span class="stock-badge stock-ok">✔ ${item.stock} ชิ้น</span>`;
     article.innerHTML=`
-      <span class="${badgeClass}">${badgeText}</span>
-      ${!item.sold&&item.category!==badgeText?`<span class="prod-badge" style="margin-left:4px;">${item.category}</span>`:''}
       ${item.image?`<img class="prod-thumb" src="${item.image}" alt="${item.name}" />`:''}
-      <div class="prod-name">${item.name}</div>
-      <div class="prod-meta">
-        <span style="color:${low?'#ef4444':'inherit'}">${low?'🚫 หมดสต็อก':'สต็อก '+item.stock+' ชิ้น'}</span>
-        <span>${item.defective?'ตำหนิ: '+item.defectReason:''}</span>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:4px;">
+        ${topBadge||'<span></span>'}
+        ${stockBadge}
       </div>
-      <div class="prod-detail">${item.details||item.note||'ไม่มีรายละเอียด'}</div>
-      <div class="prod-price">฿${item.price.toLocaleString()}</div>
-      <div class="prod-actions">
+      <div class="prod-name">${item.name}</div>
+      <div class="prod-detail" style="margin-bottom:4px;">${item.details||item.note||'—'}</div>
+      ${defect?`<div style="font-size:.75rem;color:#b45309;margin-bottom:4px;">ตำหนิ: ${item.defectReason}</div>`:''}
+      <div class="prod-bottom">
+        <div class="prod-price" style="margin:0;">฿${item.price.toLocaleString()}</div>
+        ${margin!==null?`<div class="prod-margin">กำไร ${margin}%</div>`:''}
+      </div>
+      <div class="prod-actions" style="margin-top:10px;">
         ${item.sold
           ?`<button class="act-btn sold-tag" onclick="toggleSoldOff(${item.id});event.stopPropagation()">↩️ ยกเลิกขาย</button>`
-          :`<button class="act-btn sell${low?' disabled':''}" onclick="if(${item.stock}===0){alert('สต็อกหมด ไม่สามารถขายได้');}else{openSale(${item.id});}event.stopPropagation()" ${low?'disabled':''}>💚 ขาย</button>`
-        }
+          :`<button class="act-btn sell" onclick="openSale(${item.id});event.stopPropagation()">💚 ขาย</button>`}
         <button class="act-btn" onclick="openEdit(${item.id});event.stopPropagation()">✏️ แก้ไข</button>
         <button class="act-btn danger" onclick="askDelete(${item.id});event.stopPropagation()">🗑</button>
       </div>`;
-    grid.appendChild(article);
-  });
+    return article;
+  }
+
+  if(sort!=='default'){
+    // flat list สำหรับ sort อื่น
+    const wrapper=document.createElement('div');
+    wrapper.className='product-grid';
+    list.forEach(item=>wrapper.appendChild(makeCard(item)));
+    grid.appendChild(wrapper);
+  } else {
+    // จัดกลุ่มตามหมวดหมู่ เรียง stock มาก→น้อย ภายในกลุ่ม
+    const groups={};
+    [...list].sort((a,b)=>b.stock-a.stock||a.name.localeCompare(b.name,'th')).forEach(item=>{
+      if(!groups[item.category])groups[item.category]=[];
+      groups[item.category].push(item);
+    });
+    Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0],'th')).forEach(([cat,items])=>{
+      const section=document.createElement('div');
+      section.className='cat-section';
+      const totalVal=items.reduce((s,p)=>s+(p.stock*p.price),0);
+      section.innerHTML=`<div class="cat-section-header">
+        <span class="cat-sec-label">📁 ${cat}</span>
+        <span class="cat-sec-count">${items.length} รายการ &nbsp;·&nbsp; มูลค่า ฿${totalVal.toLocaleString()}</span>
+      </div>`;
+      const catGrid=document.createElement('div');
+      catGrid.className='product-grid';
+      items.forEach(item=>catGrid.appendChild(makeCard(item)));
+      section.appendChild(catGrid);
+      grid.appendChild(section);
+    });
+  }
   updateStats();
 }
 function resetFilters(){
@@ -856,8 +961,7 @@ function askDelete(id){
 function closeConfirm(){document.getElementById('confirmBackdrop').classList.remove('open');deleteTargetId=null;}
 function doDelete(){
   if(!deleteTargetId)return;
-  const item=products.find(p=>p.id===deleteTargetId);
-  if(item&&!item.sold) txns=txns.filter(t=>t.productId!==deleteTargetId);
+  // ลบเฉพาะสินค้า — ประวัติธุรกรรมทุกประเภทยังคงอยู่เสมอ
   products=products.filter(p=>p.id!==deleteTargetId);
   saveAll();
   closeConfirm();
@@ -873,27 +977,76 @@ function openSale(id){
   document.getElementById('saleMaxStock').textContent=item.stock;
   const qi=document.getElementById('saleQty');
   qi.value=1;qi.max=item.stock;
+  // pre-fill ราคาขายจากราคาสินค้า
+  document.getElementById('saleListedPrice').textContent='฿'+(item.price||0).toLocaleString();
+  document.getElementById('salePriceInput').value=item.price||'';
+  document.getElementById('saleShippingInput').value=0;
   document.getElementById('saleWarn').style.display='none';
+  document.getElementById('saleSummary').style.display='none';
+  document.getElementById('saleConfirmBtn').disabled=false;
   document.getElementById('saleBackdrop').classList.add('open');
+  validateSale();
 }
 function closeSale(){document.getElementById('saleBackdrop').classList.remove('open');saleTargetId=null;}
-function validateSaleQty(){
+function validateSale(){
   const item=saleTargetId?products.find(p=>p.id===saleTargetId):null;
-  const q=parseInt(document.getElementById('saleQty').value)||0;
-  document.getElementById('saleWarn').style.display=(item&&q>item.stock)?'block':'none';
+  if(!item)return;
+  const qty=parseInt(document.getElementById('saleQty').value)||0;
+  const sp=parseFloat(document.getElementById('salePriceInput').value)||0;
+  const ship=parseFloat(document.getElementById('saleShippingInput').value)||0;
+  const overQty=qty>item.stock;
+  document.getElementById('saleWarn').style.display=overQty?'block':'none';
+  const valid=qty>0&&sp>0&&!overQty;
+  document.getElementById('saleConfirmBtn').disabled=!valid;
+  // summary
+  const summary=document.getElementById('saleSummary');
+  if(valid){
+    const cost=(item.costPrice||item.price)*qty;
+    const revenue=sp*qty;
+    const profit=revenue-cost-ship;
+    document.getElementById('sumRevenue').textContent='฿'+revenue.toLocaleString();
+    document.getElementById('sumCost').textContent='฿'+cost.toLocaleString();
+    document.getElementById('sumShipping').textContent='฿'+ship.toLocaleString();
+    const profEl=document.getElementById('sumProfit');
+    profEl.textContent='฿'+profit.toLocaleString();
+    profEl.style.color=profit>=0?'#16a34a':'#ef4444';
+    summary.style.display='block';
+  } else {
+    summary.style.display='none';
+  }
 }
 function confirmSale(){
   if(!saleTargetId)return;
   const item=products.find(p=>p.id===saleTargetId);
   if(!item)return;
   const qty=Math.max(1,parseInt(document.getElementById('saleQty').value)||1);
+  const sp=parseFloat(document.getElementById('salePriceInput').value)||0;
+  const ship=parseFloat(document.getElementById('saleShippingInput').value)||0;
   if(qty>item.stock){alert('จำนวนเกินสต็อกที่มี');return;}
-  // ✅ FIX: deduct stock
+  if(sp<=0){alert('กรุณากรอกราคาขาย');return;}
+  const cost=(item.costPrice||item.price)*qty;
+  const revenue=sp*qty;
+  const profit=revenue-cost-ship;
   item.stock-=qty;
   item.sold=true;
-  item.salePrice=item.salePrice||item.price;
+  item.salePrice=sp;
   item.soldAt=new Date().toLocaleString('th-TH');
-  txns.unshift({id:Date.now(),productId:item.id,type:'sale',productName:item.name,category:item.category,quantity:qty,costPrice:item.costPrice||item.price,salePrice:item.salePrice,profit:(item.salePrice-(item.costPrice||item.price))*qty,date:item.soldAt});
+  txns.unshift({
+    id:Date.now(),
+    productId:item.id,
+    type:'sale',
+    productName:item.name,
+    category:item.category,
+    quantity:qty,
+    costPrice:item.costPrice||item.price,
+    salePrice:sp,
+    shipping:ship,
+    profit:profit,
+    date:item.soldAt
+  });
+  if(item.stock<=0){
+    products=products.filter(p=>p.id!==item.id);
+  }
   saveAll();
   closeSale();
   renderProducts();
@@ -932,7 +1085,7 @@ function setTxnType(t){
   renderTxns();
 }
 function getFilteredTxns(){
-  const all=JSON.parse(localStorage.getItem(TK)||'null')||[];
+  const all=txns;
   const now=new Date();
   return all.filter(t=>{
     if(txnType!=='all'&&t.type!==txnType)return false;
@@ -959,7 +1112,7 @@ function renderTxns(){
   pc.className='kpi-card card '+(profit<0?'loss':'profit');
   document.getElementById('kMargin').textContent=margin+'%';
   // income statement
-  const allTxns=JSON.parse(localStorage.getItem(TK)||'null')||[];
+  const allTxns=txns;
   const purchases=allTxns.filter(t=>t.type==='purchase');
   const totalPurchCost=purchases.reduce((s,t)=>s+(t.costPrice||0)*(t.quantity||1),0);
   const rows=[
@@ -980,7 +1133,7 @@ function renderTxns(){
   document.getElementById('txnCountLbl').textContent=`(${filtered.length} รายการ)`;
   document.getElementById('txnList').innerHTML=filtered.length?filtered.map(t=>{
     const isSale=t.type==='sale';const p=t.profit||0;
-    return`<div class="txn-item ${t.type}"><div style="flex:1;"><span class="txn-badge ${t.type}">${isSale?'💚 ขายออก':'📦 รับสินค้า'}</span><div class="txn-name">${t.productName}</div><div class="txn-meta">${t.category} · จำนวน ${t.quantity||1} ชิ้น${isSale?` · ขาย ฿${(t.salePrice||0).toLocaleString()} · ต้นทุน ฿${(t.costPrice||0).toLocaleString()}`:` · ต้นทุน ฿${(t.costPrice||0).toLocaleString()}`}</div></div><div class="txn-right">${isSale?`<div class="txn-amount${p<0?' neg':''}">฿${p.toLocaleString()}</div><div style="font-size:.72rem;color:#94a3b8;">กำไร</div>`:''}<div class="txn-date">${t.date}</div></div></div>`;
+    return`<div class="txn-item ${t.type}"><div style="flex:1;"><span class="txn-badge ${t.type}">${isSale?'💚 ขายออก':'📦 รับสินค้า'}</span><div class="txn-name">${t.productName}</div><div class="txn-meta">${t.category} · จำนวน ${t.quantity||1} ชิ้น${isSale?` · ขาย ฿${(t.salePrice||0).toLocaleString()} · ต้นทุน ฿${(t.costPrice||0).toLocaleString()}${t.shipping?` · ค่าส่ง ฿${t.shipping.toLocaleString()}`:''}`:` · ต้นทุน ฿${(t.costPrice||0).toLocaleString()}`}</div></div><div class="txn-right">${isSale?`<div class="txn-amount${p<0?' neg':''}">฿${p.toLocaleString()}</div><div style="font-size:.72rem;color:#94a3b8;">กำไร</div>`:''}<div class="txn-date">${t.date}</div></div></div>`;
   }).join(''):'<div class="empty-state">📭 ไม่มีรายการ</div>';
 }
 function exportCsv(){
@@ -994,12 +1147,50 @@ function exportCsv(){
   a.click();
 }
 
+// ── reconcile: สร้าง purchase txn ย้อนหลังสำหรับสินค้าที่ไม่มีรายการรับสินค้า ──
+function reconcilePurchaseTxns(){
+  let changed=false;
+  const hasPurchase=new Set(txns.filter(t=>t.type==='purchase').map(t=>t.productId));
+  products.forEach(item=>{
+    if(!hasPurchase.has(item.id)){
+      txns.push({
+        id: item.id - 1,
+        productId: item.id,
+        type: 'purchase',
+        productName: item.name,
+        category: item.category,
+        quantity: item.stock + (item.sold ? 1 : 0),
+        costPrice: item.costPrice || item.price,
+        salePrice: 0,
+        profit: 0,
+        date: new Date(item.id).toLocaleString('th-TH')
+      });
+      changed=true;
+    }
+  });
+  if(changed){
+    txns.sort((a,b)=>b.id-a.id);
+    localStorage.setItem('megpu-txns',JSON.stringify(txns));
+    pushToSheets();
+  }
+}
+
 // ── manual sync ───────────────────────────
 async function manualSync(){
   await pullFromSheets();
+  reconcilePurchaseTxns();
   renderProducts();updateStats();
   if(document.getElementById('pg-transactions').classList.contains('active')) renderTxns();
 }
+
+// ── responsive nav on resize ─────────────
+window.addEventListener('resize',()=>{
+  const loggedIn=checkAuth();
+  if(!loggedIn)return;
+  const isMobile=window.innerWidth<=640;
+  document.getElementById('topnav').style.display=isMobile?'none':'block';
+  document.getElementById('bottomNav').style.display=isMobile?'block':'none';
+});
 
 // ── init ──────────────────────────────────
 if(checkAuth()){showPage('inventory');}
