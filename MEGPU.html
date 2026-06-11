@@ -1090,6 +1090,7 @@ function getFilteredTxns(){
     return true;
   });
 }
+
 function renderTxns(){
   const filtered=getFilteredTxns();
   const sales=filtered.filter(t=>t.type==='sale');
@@ -1121,13 +1122,25 @@ function renderTxns(){
   const catArr=Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
   const maxV=catArr[0]?.[1]||1;
   document.getElementById('catBars').innerHTML=catArr.length?catArr.map(([cat,val])=>`<div class="cat-bar-row"><span class="cat-bar-lbl" title="${cat}">${cat}</span><div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.round((val/maxV)*100)}%"></div></div><span class="cat-bar-val">฿${val.toLocaleString()}</span></div>`).join(''):'<p style="color:#94a3b8;font-size:.85rem;text-align:center;padding:20px 0;">ยังไม่มีข้อมูลการขาย</p>';
-  // list
+  
+  // list 
   document.getElementById('txnCountLbl').textContent=`(${filtered.length} รายการ)`;
   document.getElementById('txnList').innerHTML=filtered.length?filtered.map(t=>{
     const isSale=t.type==='sale';const p=t.profit||0;
-    return`<div class="txn-item ${t.type}"><div style="flex:1;"><span class="txn-badge ${t.type}">${isSale?'💚 ขายออก':'📦 รับสินค้า'}</span><div class="txn-name">${t.productName}</div><div class="txn-meta">${t.category} · จำนวน ${t.quantity||1} ชิ้น${isSale?` · ขาย ฿${(t.salePrice||0).toLocaleString()} · ต้นทุน ฿${(t.costPrice||0).toLocaleString()}${t.shipping?` · ค่าส่ง ฿${t.shipping.toLocaleString()}`:''}`:` · ต้นทุน ฿${(t.costPrice||0).toLocaleString()}`}</div></div><div class="txn-right">${isSale?`<div class="txn-amount${p<0?' neg':''}">฿${p.toLocaleString()}</div><div style="font-size:.72rem;color:#94a3b8;">กำไร</div>`:''}<div class="txn-date">${t.date}</div></div></div>`;
+    // เพิ่มปุ่มลบธุรกรรมที่ด้านขวา
+    return`<div class="txn-item ${t.type}"><div style="flex:1;"><span class="txn-badge ${t.type}">${isSale?'💚 ขายออก':'📦 รับสินค้า'}</span><div class="txn-name">${t.productName}</div><div class="txn-meta">${t.category} · จำนวน ${t.quantity||1} ชิ้น${isSale?` · ขาย ฿${(t.salePrice||0).toLocaleString()} · ต้นทุน ฿${(t.costPrice||0).toLocaleString()}${t.shipping?` · ค่าส่ง ฿${t.shipping.toLocaleString()}`:''}`:` · ต้นทุน ฿${(t.costPrice||0).toLocaleString()}`}</div></div><div class="txn-right" style="display:flex;flex-direction:column;align-items:flex-end;">${isSale?`<div class="txn-amount${p<0?' neg':''}">฿${p.toLocaleString()}</div><div style="font-size:.72rem;color:#94a3b8;">กำไร</div>`:''}<div class="txn-date" style="margin-bottom:6px;">${t.date}</div><button class="ghost-btn danger" style="padding:4px 8px; font-size:.75rem; border-color:rgba(248,113,113,.3); color:#991b1b; background:rgba(254,242,242,.98);" onclick="deleteTxn(${t.id})">🗑 ลบ</button></div></div>`;
   }).join(''):'<div class="empty-state">📭 ไม่มีรายการ</div>';
 }
+
+// ── delete transaction ────────────────────
+function deleteTxn(id) {
+  if(confirm('ต้องการลบประวัติธุรกรรมนี้ใช่หรือไม่?\n\n(หมายเหตุ: การลบนี้จะลบแค่ประวัติบัญชี ไม่ได้คืนค่าสต็อกสินค้า หากต้องการยกเลิกการขายและคืนสต็อก ให้ไปที่หน้าคลังสินค้าแล้วกด "ยกเลิกขาย")')) {
+    txns = txns.filter(t => t.id !== id);
+    saveAll();
+    renderTxns();
+  }
+}
+
 function exportCsv(){
   const all=JSON.parse(localStorage.getItem(TK)||'null')||[];
   const header='ประเภท,ชื่อสินค้า,หมวดหมู่,จำนวน,ต้นทุน/ชิ้น,ราคาขาย/ชิ้น,กำไร,วันที่';
@@ -1190,5 +1203,3 @@ if(checkAuth()){showPage('inventory');}
 </script>
 </body>
 </html>
-
-```
