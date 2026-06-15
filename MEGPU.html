@@ -107,6 +107,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle
 .prod-detail{font-size:.82rem;color:var(--muted);margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .prod-price{font-weight:700;font-size:1.1rem;color:#14532d;}
 .prod-thumb{width:100%;height:120px;object-fit:cover;border-radius:12px;margin-bottom:10px;}
+.prod-thumb-placeholder{width:100%;height:120px;border-radius:12px;margin-bottom:10px;background:rgba(220,252,231,.4);border:1.5px dashed rgba(34,197,94,.25);display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:rgba(34,197,94,.4);}
+.prod-price-row{display:flex;justify-content:space-between;align-items:flex-end;margin-top:6px;padding:8px 10px;background:rgba(240,253,244,.8);border-radius:10px;border:1px solid rgba(74,222,128,.18);}
+.prod-cost{font-weight:700;font-size:.95rem;color:#b45309;}
+.prod-price{font-weight:700;font-size:1rem;color:#14532d;}
 .prod-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
 .act-btn{padding:7px 12px;border-radius:10px;border:1.5px solid var(--line);background:#fff;color:var(--text);font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;transition:all 120ms;}
 .act-btn:hover{border-color:var(--acc);}
@@ -173,6 +177,12 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle
 .type-tab{padding:7px 16px;border-radius:999px;border:1.5px solid var(--line);background:transparent;color:var(--muted);font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;}
 .type-tab.active{background:rgba(220,252,231,.98);border-color:rgba(34,197,94,.5);color:#14532d;}
 .txn-item{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:12px;margin-bottom:8px;background:#fff;border:1px solid transparent;}
+.txn-price-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+.txn-price-cell{display:inline-flex;flex-direction:column;padding:5px 10px;border-radius:8px;font-size:.75rem;color:var(--muted);line-height:1.4;}
+.txn-price-cell strong{font-size:.88rem;font-weight:700;}
+.txn-price-cell.cost{background:rgba(254,243,199,.7);color:#92400e;border:1px solid rgba(251,191,36,.25);}
+.txn-price-cell.rev{background:rgba(220,252,231,.7);color:#166534;border:1px solid rgba(74,222,128,.25);}
+.txn-price-cell.ship{background:rgba(224,231,255,.7);color:#3730a3;border:1px solid rgba(129,140,248,.25);}
 .txn-item.sale{border-color:rgba(74,222,128,.3);background:rgba(240,253,244,.98);}
 .txn-item.purchase{border-color:rgba(125,211,252,.3);background:rgba(240,249,255,.98);}
 .txn-badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.76rem;font-weight:700;margin-bottom:4px;}
@@ -546,7 +556,8 @@ const AK = 'megpu-auth';
 const RK = 'megpu-role';
 const REQK = 'megpu-del-reqs';
 
-const DEFAULT_CATS = ['CPU','GPU','Monitor','Storage','RAM','Keyboard','Mouse','Laptop','Other'];
+const DEFAULT_CATS = ['CPU','MB','RAM','GPU','HDD','SSD','PSU','COOLER','CASE','MONITOR','GAMING GEAR','Other'];
+const CAT_ORDER = ['CPU','MB','RAM','GPU','HDD','SSD','PSU','COOLER','CASE','MONITOR','GAMING GEAR'];
 
 // ── state ────────────────────────────────
 let products = JSON.parse(localStorage.getItem(SK) || 'null') || [];
@@ -652,8 +663,15 @@ function saveAll() {
 
 function loadSavedCats(){return JSON.parse(localStorage.getItem(CK)||'null')||[];}
 function saveCats(c){localStorage.setItem(CK,JSON.stringify(c));}
-function getCats(){return[...new Set([...DEFAULT_CATS,...loadSavedCats(),...products.map(p=>p.category)])];}
-
+function getCats(){
+  const all=[...new Set([...DEFAULT_CATS,...loadSavedCats(),...products.map(p=>p.category)])];
+  return all.sort((a,b)=>{
+    const ai=CAT_ORDER.indexOf(a);const bi=CAT_ORDER.indexOf(b);
+    if(ai!==-1&&bi!==-1)return ai-bi;
+    if(ai!==-1)return -1;if(bi!==-1)return 1;
+    return a.localeCompare(b,'th');
+  });
+}
 // ── auth ──────────────────────────────────
 function doLogin(){
   const u=document.getElementById('loginUser').value.trim();
@@ -809,8 +827,11 @@ function renderProducts(){
     const stockBadge=isLow
       ?`<span class="stock-badge stock-low">⚠ เหลือ ${item.stock} ชิ้น</span>`
       :`<span class="stock-badge stock-ok">✔ ${item.stock} ชิ้น</span>`;
+    const thumbHtml=item.image
+      ?`<img class="prod-thumb" src="${item.image}" alt="${item.name}" onclick="openEdit(${item.id})" style="cursor:pointer;" />`
+      :`<div class="prod-thumb-placeholder" onclick="openEdit(${item.id})" style="cursor:pointer;" title="คลิกเพื่อเพิ่มรูป"><span>📷</span></div>`;
     article.innerHTML=`
-      ${item.image?`<img class="prod-thumb" src="${item.image}" alt="${item.name}" />`:''}
+      ${thumbHtml}
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:4px;">
         ${topBadge||'<span></span>'}
         ${stockBadge}
@@ -818,10 +839,17 @@ function renderProducts(){
       <div class="prod-name">${item.name}</div>
       <div class="prod-detail" style="margin-bottom:4px;">${item.details||item.note||'—'}</div>
       ${defect?`<div style="font-size:.75rem;color:#b45309;margin-bottom:4px;">ตำหนิ: ${item.defectReason}</div>`:''}
-      <div class="prod-bottom">
-        <div class="prod-price" style="margin:0;">฿${item.price.toLocaleString()}</div>
-        ${margin!==null?`<div class="prod-margin">กำไร ${margin}%</div>`:''}
+      <div class="prod-price-row">
+        <div>
+          <div style="font-size:.72rem;color:var(--muted);font-weight:600;">ต้นทุน</div>
+          <div class="prod-cost">฿${(item.costPrice||0).toLocaleString()}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:.72rem;color:var(--muted);font-weight:600;">ราคาขาย</div>
+          <div class="prod-price">฿${item.price.toLocaleString()}</div>
+        </div>
       </div>
+      ${margin!==null?`<div class="prod-margin" style="margin-top:2px;">กำไร ${margin}%</div>`:''}
       <div class="prod-actions" style="margin-top:10px;">
         ${item.sold
           ?`<button class="act-btn sold-tag" onclick="toggleSoldOff(${item.id});event.stopPropagation()">↩️ ยกเลิกขาย</button>`
@@ -843,7 +871,12 @@ function renderProducts(){
       if(!groups[item.category])groups[item.category]=[];
       groups[item.category].push(item);
     });
-    Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0],'th')).forEach(([cat,items])=>{
+    Object.entries(groups).sort((a,b)=>{
+        const ai=CAT_ORDER.indexOf(a[0]);const bi=CAT_ORDER.indexOf(b[0]);
+        if(ai!==-1&&bi!==-1)return ai-bi;
+        if(ai!==-1)return -1;if(bi!==-1)return 1;
+        return a[0].localeCompare(b[0],'th');
+      }).forEach(([cat,items])=>{
       const section=document.createElement('div');
       section.className='cat-section';
       const totalVal=items.reduce((s,p)=>s+(p.stock*p.price),0);
@@ -1192,7 +1225,26 @@ function renderTxns(){
       }
     }
 
-    return`<div class="txn-item ${t.type}"><div style="flex:1;"><span class="txn-badge ${t.type}">${isSale?'💚 ขายออก':'📦 รับสินค้า'}</span><div class="txn-name">${t.productName}</div><div class="txn-meta">${t.category} · จำนวน ${t.quantity||1} ชิ้น${isSale?` · ขาย ฿${(t.salePrice||0).toLocaleString()} · ต้นทุน ฿${(t.costPrice||0).toLocaleString()}${t.shipping?` · ค่าส่ง ฿${t.shipping.toLocaleString()}`:''}`:` · ต้นทุน ฿${(t.costPrice||0).toLocaleString()}`}</div></div><div class="txn-right" style="display:flex;flex-direction:column;align-items:flex-end;">${isSale?`<div class="txn-amount${p<0?' neg':''}">฿${p.toLocaleString()}</div><div style="font-size:.72rem;color:#94a3b8;">กำไร</div>`:''}<div class="txn-date" style="margin-bottom:6px;">${t.date}</div>${actionBtn}</div></div>`;
+    return`<div class="txn-item ${t.type}">
+  <div style="flex:1;min-width:0;">
+    <span class="txn-badge ${t.type}">${isSale?'💚 ขายออก':'📦 รับสินค้า'}</span>
+    <div class="txn-name">${t.productName}</div>
+    <div class="txn-meta">${t.category} &nbsp;·&nbsp; จำนวน <strong>${t.quantity||1}</strong> ชิ้น</div>
+    ${isSale?`<div class="txn-price-row">
+      <span class="txn-price-cell cost">ต้นทุน<br/><strong>฿${((t.costPrice||0)*(t.quantity||1)).toLocaleString()}</strong></span>
+      <span class="txn-price-cell rev">ราคาขาย<br/><strong>฿${((t.salePrice||0)*(t.quantity||1)).toLocaleString()}</strong></span>
+      ${t.shipping?`<span class="txn-price-cell ship">ค่าส่ง<br/><strong>฿${t.shipping.toLocaleString()}</strong></span>`:''}
+    </div>`:`<div class="txn-price-row">
+      <span class="txn-price-cell cost">ต้นทุน/ชิ้น<br/><strong>฿${(t.costPrice||0).toLocaleString()}</strong></span>
+      <span class="txn-price-cell cost">รวม<br/><strong>฿${((t.costPrice||0)*(t.quantity||1)).toLocaleString()}</strong></span>
+    </div>`}
+  </div>
+  <div class="txn-right">
+    ${isSale?`<div class="txn-amount${p<0?' neg':''}">฿${p.toLocaleString()}</div><div style="font-size:.72rem;color:#94a3b8;margin-bottom:4px;">กำไร</div>`:''}
+    <div class="txn-date">${t.date}</div>
+    <div style="margin-top:6px;">${actionBtn}</div>
+  </div>
+</div>`;
   }).join(''):'<div class="empty-state">📭 ไม่มีรายการ</div>';
 }
 
