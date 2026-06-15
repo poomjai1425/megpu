@@ -328,6 +328,58 @@ body::before{content:'';position:fixed;inset:0;
 @media(max-width:400px){
   .cap-row{grid-template-columns:1fr;}
 }
+/* ===================================================
+   📱 RESPONSIVE DESIGN: สำหรับหน้าจอโทรศัพท์มือถือ
+   =================================================== */
+@media screen and (max-width: 768px) {
+  /* 1. ลดระยะขอบรอบนอกเพื่อให้มีพื้นที่แสดงผลมากขึ้น */
+  body {
+    padding: 10px !important;
+  }
+  
+  /* 2. บังคับให้โครงสร้างหลักและการ์ดต่างๆ เต็มจอ 100% */
+  main, .container, .card, .panel, .box {
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding: 15px !important;
+    box-sizing: border-box;
+  }
+
+  /* 3. เปลี่ยนการเรียงจากแนวนอนเป็นแนวตั้ง (Stacking) */
+  .flex-row, .grid, [style*="display: flex"] {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  /* 4. ขยายปุ่มกดและช่องกรอกข้อมูลให้เต็มนิ้ว กดยากไม่พลาด */
+  button, input, select {
+    width: 100% !important;
+    min-height: 48px !important; /* ขนาดมาตรฐานที่นิ้วกดง่าย */
+    font-size: 16px !important; /* ป้องกัน iPhone ซูมหน้าจออัตโนมัติเวลากดพิมพ์ */
+    margin-bottom: 8px;
+    box-sizing: border-box;
+  }
+
+  /* 5. จัดการตารางข้อมูล (เช่น ประวัติธุรกรรม) ไม่ให้ล้นจอ */
+  table, .table-container, .notif-item {
+    display: block !important;
+    width: 100% !important;
+    overflow-x: auto !important; /* ให้ใช้นิ้วปัดเลื่อนซ้ายขวาได้ */
+    white-space: nowrap !important;
+  }
+
+  /* 6. ปรับขนาดตัวหนังสือหัวข้อให้พอดีสายตา */
+  h1 { font-size: 1.5rem !important; text-align: center; }
+  h2 { font-size: 1.2rem !important; }
+  
+  /* ปรับเมนูแจ้งเตือนให้พอดีจอ */
+  .notif-meta {
+    font-size: 0.8rem;
+    white-space: normal;
+  }
+}
 </style>
 </head>
 <body>
