@@ -329,7 +329,7 @@ body::before{content:'';position:fixed;inset:0;
   .cap-row{grid-template-columns:1fr;}
 }
 /* ===================================================
-   📱 RESPONSIVE DESIGN: สำหรับหน้าจอโทรศัพท์มือถือ
+   📱 RESPONSIVE DESIGN: สำหรับหน้าจอโทรศัพท์มือถือ (เวอร์ชันแก้ไขสมส่วนสมบูรณ์)
    =================================================== */
 @media screen and (max-width: 768px) {
   /* 1. ลดระยะขอบรอบนอกเพื่อให้มีพื้นที่แสดงผลมากขึ้น */
@@ -346,14 +346,20 @@ body::before{content:'';position:fixed;inset:0;
     box-sizing: border-box;
   }
 
-  /* 3. เปลี่ยนการเรียงจากแนวนอนเป็นแนวตั้ง (Stacking) */
-  .flex-row, .grid, [style*="display: flex"] {
+  /* 3. เปลี่ยนการเรียงจากแนวนอนเป็นแนวตั้ง (Stacking) และโครงสร้าง Grid ทั่วไป */
+  .flex-row, .grid {
     flex-direction: column !important;
     align-items: stretch !important;
     gap: 12px !important;
   }
+  .split-grid, .fg2 { 
+    grid-template-columns: 1fr !important; 
+  }
+  .stats-grid { 
+    grid-template-columns: repeat(2, 1fr) !important; 
+  }
 
-  /* 4. ขยายปุ่มกดและช่องกรอกข้อมูลให้เต็มนิ้ว กดยากไม่พลาด */
+  /* 4. ขยายปุ่มกดและช่องกรอกข้อมูลทั่วไปให้เต็มนิ้ว กดยากไม่พลาด */
   button, input, select {
     width: 100% !important;
     min-height: 48px !important; /* ขนาดมาตรฐานที่นิ้วกดง่าย */
@@ -378,6 +384,64 @@ body::before{content:'';position:fixed;inset:0;
   .notif-meta {
     font-size: 0.8rem;
     white-space: normal;
+  }
+
+  /* ===================================================
+     🛠️ จุดที่แก้ไขเพิ่ม: ปรับส่วน "ทุน" (Cap Hero) ให้สมส่วน 
+     =================================================== */
+  
+  /* ปรับแต่งการ์ดทุนหลักให้กระชับขึ้น */
+  .cap-hero {
+    padding: 16px 20px !important;
+    border-radius: 16px !important;
+    margin-bottom: 16px !important;
+  }
+
+  /* ❌ ล็อกไม่ให้ปุ่ม "✏️ แก้ไขทุน" ขยายใหญ่เต็มจอเหมือนปุ่มอื่น บังคับให้เป็นปุ่มเล็กมุมขวาตามเดิม */
+  .cap-edit-btn {
+    position: absolute !important;
+    top: 12px !important;
+    right: 12px !important;
+    width: auto !important;          
+    min-height: auto !important;      
+    padding: 5px 10px !important;     
+    font-size: 0.72rem !important;    
+    margin: 0 !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-radius: 6px !important;
+  }
+
+  /* บังคับให้แถวข้อมูลทุนเรียงเป็นแนวตั้งเดี่ยว (บนลงล่าง) จะได้ไม่เบียดกันจนล้นจอ */
+  .cap-row {
+    display: grid !important;
+    grid-template-columns: 1fr !important; 
+    gap: 14px !important;
+    padding-top: 16px !important;     
+  }
+
+  /* ย่อขนาดตัวเลขเงินหลักหมื่น/หลักแสนลงมาให้พอดีสายตา ไม่ระเบิดทะลุการ์ด */
+  .cap-val {
+    font-size: 1.45rem !important;    
+    margin-top: 2px;
+  }
+
+  .cap-label {
+    font-size: 0.65rem !important;
+    letter-spacing: 0.1em !important;
+  }
+
+  /* ปรับแต่งหน้าต่าง Pop-up แก้ไขทุน (Modal) ให้พอดีกับจอมือถือ */
+  #capBackdrop .modal {
+    width: 92% !important;
+    max-width: 360px !important;
+    margin: auto !important;
+    border-radius: 20px !important;
+    padding: 20px !important;
+  }
+  
+  #capBackdrop button {
+    min-height: 44px !important;
+    margin-bottom: 8px;
   }
 }
 </style>
