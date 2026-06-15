@@ -563,6 +563,7 @@ const CAT_ORDER = ['CPU','MB','RAM','GPU','HDD','SSD','PSU','COOLER','CASE','MON
 let products = JSON.parse(localStorage.getItem(SK) || 'null') || [];
 let txns = JSON.parse(localStorage.getItem(TK) || 'null') || [];
 let delRequests = JSON.parse(localStorage.getItem(REQK) || 'null') || [];
+let customCats = JSON.parse(localStorage.getItem(CK) || 'null') || [];
 let editingId = null;
 let saleTargetId = null;
 let deleteTargetId = null;
@@ -620,6 +621,10 @@ async function pullFromSheets() {
         localStorage.setItem(REQK, JSON.stringify(delRequests));
     }
 
+    // Sync custom categories — cloud wins (overrides local)
+    customCats = Array.isArray(raw.customCats) ? [...new Set([...raw.customCats])] : [];
+    localStorage.setItem(CK, JSON.stringify(customCats));
+
     reconcilePurchaseTxns();
     setSyncStatus('ok', 'ซิงค์แล้ว');
     updateReqCountUI();
@@ -640,7 +645,7 @@ async function pushToSheets() {
     const res = await fetch(JSONBIN_URL, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_KEY },
-      body: JSON.stringify({ products, txns, delRequests })
+      body: JSON.stringify({ products, txns, delRequests, customCats })
     });
     const r = await res.json();
     setSyncStatus(r.record ? 'ok' : 'error', r.record ? 'บันทึกแล้ว' : 'บันทึกไม่สำเร็จ');
@@ -658,11 +663,13 @@ function saveAll() {
   localStorage.setItem(SK, JSON.stringify(products));
   localStorage.setItem(TK, JSON.stringify(txns));
   localStorage.setItem(REQK, JSON.stringify(delRequests));
+  localStorage.setItem(CK, JSON.stringify(customCats));
   pushToSheets();
 }
 
-function loadSavedCats(){return JSON.parse(localStorage.getItem(CK)||'null')||[];}
-function saveCats(c){localStorage.setItem(CK,JSON.stringify(c));}
+function loadSavedCats(){return customCats;}
+function saveCats(c){customCats=[...c];localStorage.setItem(CK,JSON.stringify(customCats));pushToSheets();}
+
 function getCats(){
   const all=[...new Set([...DEFAULT_CATS,...loadSavedCats(),...products.map(p=>p.category)])];
   return all.sort((a,b)=>{
