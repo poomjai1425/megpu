@@ -593,33 +593,16 @@ async function pullFromSheets() {
     const data = await res.json();
     const raw = data.record || {};
     
-    if (raw.products && raw.products.length > 0) {
-      const localMap = new Map(products.map(p => [p.id, p]));
-      const remoteIds = new Set(raw.products.map(p => p.id));
-      const mergedProducts = raw.products.map(rp => {
-        const lp = localMap.get(rp.id);
-        if (!lp) return rp;
-        if (lp.stock < rp.stock || (lp.sold && !rp.sold)) return lp;
-        return rp;
-      });
-      const localNewProducts = products.filter(p => !remoteIds.has(p.id));
-      products = [...mergedProducts, ...localNewProducts];
-      localStorage.setItem(SK, JSON.stringify(products));
-    }
-    if (raw.txns && raw.txns.length > 0) {
-      const localIds = new Set(txns.map(t => t.id));
-      const remoteIds = new Set(raw.txns.map(t => t.id));
-      const localOnly = txns.filter(t => !remoteIds.has(t.id));
-      const merged = [...localOnly, ...raw.txns].sort((a, b) => b.id - a.id);
-      txns = merged;
-      localStorage.setItem(TK, JSON.stringify(txns));
-    }
+    // Sync products — cloud wins (overrides local)
+    products = Array.isArray(raw.products) ? [...raw.products] : [];
+    localStorage.setItem(SK, JSON.stringify(products));
+    // Sync txns — cloud wins (overrides local)
+    txns = Array.isArray(raw.txns) ? [...raw.txns].sort((a, b) => b.id - a.id) : [];
+    localStorage.setItem(TK, JSON.stringify(txns));
     
-    // Sync deletion requests
-    if (raw.delRequests) {
-        delRequests = [...new Set([...delRequests, ...raw.delRequests])];
-        localStorage.setItem(REQK, JSON.stringify(delRequests));
-    }
+    // Sync deletion requests — cloud wins
+    delRequests = Array.isArray(raw.delRequests) ? [...raw.delRequests] : [];
+    localStorage.setItem(REQK, JSON.stringify(delRequests));
 
     // Sync custom categories — cloud wins (overrides local)
     customCats = Array.isArray(raw.customCats) ? [...new Set([...raw.customCats])] : [];
